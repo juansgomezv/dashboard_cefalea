@@ -2,8 +2,16 @@ streamlit
 pandas
 numpy
 scikit-learn
+<<<<<<< HEAD
 matplotlib
 seaborn
 hdbscan
 umap-learn
 openpyxl
+=======
+matplotlib2
+seaborn
+hdbscan
+umap-learn
+openpyxl
+>>>>>>> 57763eacb8016553dae49b5e636150220f6e327a
