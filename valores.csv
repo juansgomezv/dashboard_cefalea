@@ -1,0 +1,781 @@
+columna,valor,traduccion
+Edad,18,18
+Edad,19,19
+Edad,20,20
+Edad,21,21
+Edad,22,22
+Edad,23,23
+Edad,24,24
+Edad,25,25
+Edad,26,26
+Edad,27,27
+Edad,28,28
+Edad,29,29
+Edad,31,31
+Edad,34,34
+Genero,0,Masculino
+Genero,1,Femenino
+Genero,2,Otro
+Genero,3,Prefiero no decirlo
+EstadoCivil,0,Soltero
+EstadoCivil,1,Divorciado 
+EstadoCivil,2,Union Libre
+EstadoCivil,3,Viudo
+EstadoCivil,4,Casado
+EstadoCivil,5,Prefiero no decirlo
+ProgramaAcademico,0,Administración de Empresas
+ProgramaAcademico,1,Ciencias Politicas y Gobierno
+ProgramaAcademico,2,Ingeniería Eléctrica
+ProgramaAcademico,3,Ingeniería Ambiental
+ProgramaAcademico,4,Ingeniería Electrónica
+ProgramaAcademico,5,Administración de Negocios Internacionales
+ProgramaAcademico,6,Comunicación Social y Periodismo
+ProgramaAcademico,7,Ingeniería Mécanica
+ProgramaAcademico,8,Ingeniería Industrial
+ProgramaAcademico,9,Derecho
+ProgramaAcademico,10,Diseño Gráfico
+ProgramaAcademico,11,Ingeniería Civil
+ProgramaAcademico,12,Ingeniería de Sistemas e Informática
+ProgramaAcademico,13,Psicología
+Semestre,1,1
+Semestre,2,2
+Semestre,3,3
+Semestre,4,4
+Semestre,5,5
+Semestre,6,6
+Semestre,7,7
+Semestre,8,8
+Semestre,9,9
+Semestre,10,10
+PromedioAnterior,0,No aplica / No recuerda
+PromedioAnterior,3.1,3.1
+PromedioAnterior,3.3,3.3
+PromedioAnterior,3.4,3.4
+PromedioAnterior,3.5,3.5
+PromedioAnterior,3.55,3.55
+PromedioAnterior,3.57,3.57
+PromedioAnterior,3.6,3.6
+PromedioAnterior,3.64,3.64
+PromedioAnterior,3.67,3.67
+PromedioAnterior,3.68,3.68
+PromedioAnterior,3.7,3.7
+PromedioAnterior,3.71,3.71
+PromedioAnterior,3.74,3.74
+PromedioAnterior,3.75,3.75
+PromedioAnterior,3.76,3.76
+PromedioAnterior,3.78,3.78
+PromedioAnterior,3.8,3.8
+PromedioAnterior,3.87,3.87
+PromedioAnterior,3.88,3.88
+PromedioAnterior,3.9,3.9
+PromedioAnterior,3.93,3.93
+PromedioAnterior,3.94,3.94
+PromedioAnterior,3.95,3.95
+PromedioAnterior,3.96,3.96
+PromedioAnterior,3.98,3.98
+PromedioAnterior,3.99,3.99
+PromedioAnterior,4,4
+PromedioAnterior,4.02,4.02
+PromedioAnterior,4.03,4.03
+PromedioAnterior,4.06,4.06
+PromedioAnterior,4.08,4.08
+PromedioAnterior,4.09,4.09
+PromedioAnterior,4.1,4.1
+PromedioAnterior,4.12,4.12
+PromedioAnterior,4.16,4.16
+PromedioAnterior,4.17,4.17
+PromedioAnterior,4.18,4.18
+PromedioAnterior,4.19,4.19
+PromedioAnterior,4.2,4.2
+PromedioAnterior,4.21,4.21
+PromedioAnterior,4.22,4.22
+PromedioAnterior,4.23,4.23
+PromedioAnterior,4.24,4.24
+PromedioAnterior,4.25,4.25
+PromedioAnterior,4.27,4.27
+PromedioAnterior,4.3,4.3
+PromedioAnterior,4.32,4.32
+PromedioAnterior,4.33,4.33
+PromedioAnterior,4.34,4.34
+PromedioAnterior,4.35,4.35
+PromedioAnterior,4.36,4.36
+PromedioAnterior,4.38,4.38
+PromedioAnterior,4.4,4.4
+PromedioAnterior,4.41,4.41
+PromedioAnterior,4.43,4.43
+PromedioAnterior,4.44,4.44
+PromedioAnterior,4.45,4.45
+PromedioAnterior,4.46,4.46
+PromedioAnterior,4.47,4.47
+PromedioAnterior,4.48,4.48
+PromedioAnterior,4.5,4.5
+PromedioAnterior,4.51,4.51
+PromedioAnterior,4.52,4.52
+PromedioAnterior,4.55,4.55
+PromedioAnterior,4.56,4.56
+PromedioAnterior,4.57,4.57
+PromedioAnterior,4.58,4.58
+PromedioAnterior,4.6,4.6
+PromedioAnterior,4.61,4.61
+PromedioAnterior,4.62,4.62
+PromedioAnterior,4.63,4.63
+PromedioAnterior,4.65,4.65
+PromedioAnterior,4.67,4.67
+PromedioAnterior,4.68,4.68
+PromedioAnterior,4.7,4.7
+PromedioAnterior,4.74,4.74
+PromedioAnterior,4.79,4.79
+PromedioAnterior,4.8,4.8
+PromedioAnterior,4.83,4.83
+PromedioAnterior,4.84,4.84
+PromedioAnterior,4.85,4.85
+PromedioAnterior,4.86,4.86
+FrecuenciaSuspenderEstudios,0,Nunca
+FrecuenciaSuspenderEstudios,1,Casi Nunca
+FrecuenciaSuspenderEstudios,2,Casi Siempre
+FrecuenciaSuspenderEstudios,3,Siempre
+EnfermedadFisica,0,No
+EnfermedadFisica,1,Tal vez / No sabe
+EnfermedadFisica,2,Si
+TratamientoFarmacologico,0,No
+TratamientoFarmacologico,1,Tal vez / No sabe
+TratamientoFarmacologico,2,Si
+CrisisConvulcionEpilepsia,0,No
+CrisisConvulcionEpilepsia,1,Tal vez / No sabe
+CrisisConvulcionEpilepsia,2,Si
+InfeccionCerebral,0,No
+InfeccionCerebral,1,Tal vez / No sabe
+InfeccionCerebral,2,Si
+EnfermedadNeurologica,0,No
+EnfermedadNeurologica,1,Tal vez / No sabe
+EnfermedadNeurologica,2,Si
+ProblemasCardiovasculares,0,No
+ProblemasCardiovasculares,1,Tal vez / No sabe
+ProblemasCardiovasculares,2,Si
+ProblemasVision,0,No
+ProblemasVision,1,Tal vez / No sabe
+ProblemasVision,2,Si
+ProblemasAudicion,0,No
+ProblemasAudicion,1,Tal vez / No sabe
+ProblemasAudicion,2,Si
+Embarazo,0,No
+Embarazo,1,Tal vez / No sabe
+Embarazo,2,Si
+ProblemasDigestivos,0,No
+ProblemasDigestivos,1,Tal vez / No sabe
+ProblemasDigestivos,2,Si
+ProblemasRespiratorios,0,No
+ProblemasRespiratorios,1,Tal vez / No sabe
+ProblemasRespiratorios,2,Si
+OvarioPoliquistico,0,No
+OvarioPoliquistico,1,Tal vez / No sabe
+OvarioPoliquistico,2,Si
+Cafeina,0,Nunca
+Cafeina,1,Casi Nunca
+Cafeina,2,Frecuentemente
+Cafeina,3,Casi Siempre
+Cafeina,4,Siempre
+BebidasEnergizantes,0,Nunca
+BebidasEnergizantes,1,Casi Nunca
+BebidasEnergizantes,2,Frecuentemente
+BebidasEnergizantes,3,Casi Siempre
+BebidasEnergizantes,4,Siempre
+Tabaco,0,Nunca
+Tabaco,1,Casi Nunca
+Tabaco,2,Frecuentemente
+Tabaco,3,Casi Siempre
+Tabaco,4,Siempre
+Alcohol,0,Nunca
+Alcohol,1,Casi Nunca
+Alcohol,2,Frecuentemente
+Alcohol,3,Casi Siempre
+Alcohol,4,Siempre
+Cannabis,0,Nunca
+Cannabis,1,Casi Nunca
+Cannabis,2,Frecuentemente
+Cannabis,3,Casi Siempre
+Cannabis,4,Siempre
+OtrosEstimulantes,0,Nunca
+OtrosEstimulantes,1,Casi Nunca
+OtrosEstimulantes,2,Frecuentemente
+OtrosEstimulantes,3,Casi Siempre
+Inhalantes,0,Nunca
+Inhalantes,1,Casi Nunca
+Inhalantes,2,Frecuentemente
+Inhalantes,3,Casi Siempre
+Inhalantes,4,Siempre
+Tranquilizantes,0,Nunca
+Tranquilizantes,1,Casi Nunca
+Tranquilizantes,2,Frecuentemente
+Tranquilizantes,3,Casi Siempre
+Tranquilizantes,4,Siempre
+Opiaceos,0,Nunca
+Opiaceos,1,Casi Nunca
+Opiaceos,2,Frecuentemente
+Opiaceos,3,Casi Siempre
+Alucinogenos,0,Nunca
+Alucinogenos,1,Casi Nunca
+Alucinogenos,2,Frecuentemente
+Alucinogenos,3,Casi Siempre
+Cocaina,0,Nunca
+Cocaina,1,Casi Nunca
+Cocaina,2,Frecuentemente
+Cocaina,3,Casi Siempre
+AntecedentesFamiliares,0,No
+AntecedentesFamiliares,1,Si
+LugarDolor,1,Pómulo / Mandibula
+LugarDolor,2,Área Ocular
+LugarDolor,3,Un lado de la Cabeza
+LugarDolor,4,Toda la Cabeza
+IntensidadDolor,0,Leve
+IntensidadDolor,1,Moderado
+IntensidadDolor,2,Severa
+IntensidadDolor,3,Muy Severa
+DuracionDolor,0,Segundos o Minutos
+DuracionDolor,1,Entre 30 minutos y 3 horas
+DuracionDolor,2,Entre 4 horas y 3 días
+DuracionDolor,3,Mas de 3 días
+FrecuenciaDolor,0,Episodios entre 6 y 9 semanas
+FrecuenciaDolor,1,Crisis episódicas y recurrentes
+FrecuenciaDolor,2,Más de 15 días al mes
+FrecuenciaDolor,3,A diario o casi a diario
+Ruido/Luz,0,No
+Ruido/Luz,1,Si
+Nauseas,0,No
+Nauseas,1,Si
+EdemaOcular,0,No
+EdemaOcular,1,Si
+Alteraciones,0,No
+Alteraciones,1,Si
+EspasmosFaciales,0,No
+EspasmosFaciales,1,Si
+ActividadFisica,0,No
+ActividadFisica,1,Si
+InasistenciaDolor,0,0
+InasistenciaDolor,1,1
+InasistenciaDolor,2,2
+InasistenciaDolor,3,3
+InasistenciaDolor,4,4
+InasistenciaDolor,5,5
+InasistenciaDolor,6,6
+InasistenciaDolor,7,7
+InasistenciaDolor,8,8
+InasistenciaDolor,9,9
+InasistenciaDolor,10,10
+InasistenciaDolor,15,15
+InasistenciaDolor,30,30
+IndiceDolor,2,2
+IndiceDolor,3,3
+IndiceDolor,4,4
+IndiceDolor,5,5
+IndiceDolor,6,6
+IndiceDolor,7,7
+IndiceDolor,8,8
+IndiceDolor,9,9
+IndiceDolor,10,10
+IndiceDolor,11,11
+IndiceDolor,12,12
+IndiceDolor,13,13
+IndiceDolor,14,14
+IndiceDolor,15,15
+IndiceDolor,16,16
+IndiceDolor,17,17
+IndiceDolor,18,18
+IndiceDolor,19,19
+IndiceDolor,20,20
+IndiceDolor,21,21
+IndiceDolor,22,22
+IndiceDolor,23,23
+IndiceDolor,24,24
+IndiceDolor,27,27
+IndiceDolor,28,28
+IndiceDolor,43,43
+HoraDormir,1,6:00 PM – 8:59 PM
+HoraDormir,2,9:00 PM – 10:59 PM
+HoraDormir,3,11:00 PM – 12:59 AM
+HoraDormir,4,1:00 AM – 5:59 AM
+TiempoEnDormirse,0,Inmediato
+TiempoEnDormirse,1,Hasta 30 Mins
+TiempoEnDormirse,2,Hasta 60 Mins
+TiempoEnDormirse,3,Hasta 90 mins
+TiempoEnDormirse,4,Mas de 90 mins
+TiempoDeSueno,0,8-9 horas
+TiempoDeSueno,1,6-7 horas
+TiempoDeSueno,2,4-5 horas
+TiempoDeSueno,3,2-3 horas
+NoDormirEn30Mins,0,Ninguna vez en el último mes
+NoDormirEn30Mins,1,Una o dos veces a la semana
+NoDormirEn30Mins,2,Tres o más veces a la semana
+NoDormirEn30Mins,3,Menos de una vez a la semana
+Despertarse,0,Ninguna vez en el último mes
+Despertarse,1,Una o dos veces a la semana
+Despertarse,2,Tres o más veces a la semana
+Despertarse,3,Menos de una vez a la semana
+LevantarseSanitario,0,Ninguna vez en el último mes
+LevantarseSanitario,1,Una o dos veces a la semana
+LevantarseSanitario,2,Tres o más veces a la semana
+LevantarseSanitario,3,Menos de una vez a la semana
+NoRespirarBienSueno,0,Ninguna vez en el último mes
+NoRespirarBienSueno,1,Una o dos veces a la semana
+NoRespirarBienSueno,2,Tres o más veces a la semana
+NoRespirarBienSueno,3,Menos de una vez a la semana
+RoncarRuidosamente,0,Ninguna vez en el último mes
+RoncarRuidosamente,1,Una o dos veces a la semana
+RoncarRuidosamente,2,Tres o más veces a la semana
+RoncarRuidosamente,3,Menos de una vez a la semana
+SentirFrio,0,Ninguna vez en el último mes
+SentirFrio,1,Una o dos veces a la semana
+SentirFrio,2,Tres o más veces a la semana
+SentirFrio,3,Menos de una vez a la semana
+SentirCalor,0,Ninguna vez en el último mes
+SentirCalor,1,Una o dos veces a la semana
+SentirCalor,2,Tres o más veces a la semana
+SentirCalor,3,Menos de una vez a la semana
+Pesadillas,0,Ninguna vez en el último mes
+Pesadillas,1,Una o dos veces a la semana
+Pesadillas,2,Tres o más veces a la semana
+Pesadillas,3,Menos de una vez a la semana
+DoloresSueno,0,Ninguna vez en el último mes
+DoloresSueno,1,Una o dos veces a la semana
+DoloresSueno,2,Tres o más veces a la semana
+DoloresSueno,3,Menos de una vez a la semana
+MedicinasDormir,0,Ninguna vez en el último mes
+MedicinasDormir,1,Una o dos veces a la semana
+MedicinasDormir,2,Tres o más veces a la semana
+MedicinasDormir,3,Menos de una vez a la semana
+MantenerseDespierto,0,Nada problemático
+MantenerseDespierto,1,Solo ligeramente problemático
+MantenerseDespierto,2,Moderadamente problemático
+MantenerseDespierto,3,Muy problemático
+AnimosParaActividades,0,Nada problemático
+AnimosParaActividades,1,Solo ligeramente problemático
+AnimosParaActividades,2,Moderadamente problemático
+AnimosParaActividades,3,Muy problemático
+CalidadSueno,0,Muy buena
+CalidadSueno,1,Buena
+CalidadSueno,2,Mala
+CalidadSueno,3,Muy mala
+PocoInteres,0,Ningún día
+PocoInteres,1,Varios días
+PocoInteres,2,Más de la mitad de los días
+PocoInteres,3,Casi todos los días
+DecaidoDeprimido,0,Ningún día
+DecaidoDeprimido,1,Varios días
+DecaidoDeprimido,2,Más de la mitad de los días
+DecaidoDeprimido,3,Casi todos los días
+MuchoPocoSueno,0,Ningún día
+MuchoPocoSueno,1,Varios días
+MuchoPocoSueno,2,Más de la mitad de los días
+MuchoPocoSueno,3,Casi todos los días
+Cansado,0,Ningún día
+Cansado,1,Varios días
+Cansado,2,Más de la mitad de los días
+Cansado,3,Casi todos los días
+MuchoPocoApetito,0,Ningún día
+MuchoPocoApetito,1,Varios días
+MuchoPocoApetito,2,Más de la mitad de los días
+MuchoPocoApetito,3,Casi todos los días
+SentimientoFracaso,0,Ningún día
+SentimientoFracaso,1,Varios días
+SentimientoFracaso,2,Más de la mitad de los días
+SentimientoFracaso,3,Casi todos los días
+PocaConcentracion,0,Ningún día
+PocaConcentracion,1,Varios días
+PocaConcentracion,2,Más de la mitad de los días
+PocaConcentracion,3,Casi todos los días
+MoverRapidoLento,0,Ningún día
+MoverRapidoLento,1,Varios días
+MoverRapidoLento,2,Más de la mitad de los días
+MoverRapidoLento,3,Casi todos los días
+PensamientosSuicidas,0,Ningún día
+PensamientosSuicidas,1,Varios días
+PensamientosSuicidas,2,Más de la mitad de los días
+PensamientosSuicidas,3,Casi todos los días
+Ansioso,0,Ausente
+Ansioso,1,Leve
+Ansioso,2,Moderado
+Ansioso,3,Grave
+Ansioso,4,Muy grave / Incapacitante
+Tension,0,Ausente
+Tension,1,Leve
+Tension,2,Moderado
+Tension,3,Grave
+Tension,4,Muy grave / Incapacitante
+Temor,0,Ausente
+Temor,1,Leve
+Temor,2,Moderado
+Temor,3,Grave
+Temor,4,Muy grave / Incapacitante
+Insomio,0,Ausente
+Insomio,1,Leve
+Insomio,2,Moderado
+Insomio,3,Grave
+Insomio,4,Muy grave / Incapacitante
+Intelectual,0,Ausente
+Intelectual,1,Leve
+Intelectual,2,Moderado
+Intelectual,3,Grave
+Intelectual,4,Muy grave / Incapacitante
+Deprimido,0,Ausente
+Deprimido,1,Leve
+Deprimido,2,Moderado
+Deprimido,3,Grave
+Deprimido,4,Muy grave / Incapacitante
+SomaticoMuscular,0,Ausente
+SomaticoMuscular,1,Leve
+SomaticoMuscular,2,Moderado
+SomaticoMuscular,3,Grave
+SomaticoMuscular,4,Muy grave / Incapacitante
+SomaticoSensorial,0,Ausente
+SomaticoSensorial,1,Leve
+SomaticoSensorial,2,Moderado
+SomaticoSensorial,3,Grave
+SomaticoSensorial,4,Muy grave / Incapacitante
+Cardiovascular,0,Ausente
+Cardiovascular,1,Leve
+Cardiovascular,2,Moderado
+Cardiovascular,3,Grave
+Cardiovascular,4,Muy grave / Incapacitante
+Respiratorio,0,Ausente
+Respiratorio,1,Leve
+Respiratorio,2,Moderado
+Respiratorio,3,Grave
+Respiratorio,4,Muy grave / Incapacitante
+Gastrointestinales,0,Ausente
+Gastrointestinales,1,Leve
+Gastrointestinales,2,Moderado
+Gastrointestinales,3,Grave
+Gastrointestinales,4,Muy grave / Incapacitante
+Genitourinarios,0,Ausente
+Genitourinarios,1,Leve
+Genitourinarios,2,Moderado
+Genitourinarios,3,Grave
+Genitourinarios,4,Muy grave / Incapacitante
+Autonomos,0,Ausente
+Autonomos,1,Leve
+Autonomos,2,Moderado
+Autonomos,3,Grave
+Autonomos,4,Muy grave / Incapacitante
+Comportamiento,0,Ausente
+Comportamiento,1,Leve
+Comportamiento,2,Moderado
+Comportamiento,3,Grave
+Comportamiento,4,Muy grave / Incapacitante
+FelizInfeliz,0,Totalmente P
+FelizInfeliz,1,Bastante P
+FelizInfeliz,2,Algo P
+FelizInfeliz,3,Algo N
+FelizInfeliz,4,Bastante N 
+FelizInfeliz,5,Totalmente N
+AcompanadoAislado,0,Totalmente P
+AcompanadoAislado,1,Bastante P
+AcompanadoAislado,2,Algo P
+AcompanadoAislado,3,Algo N
+AcompanadoAislado,4,Bastante N 
+AcompanadoAislado,5,Totalmente N
+JovialMalhumurado,0,Totalmente P
+JovialMalhumurado,1,Bastante P
+JovialMalhumurado,2,Algo P
+JovialMalhumurado,3,Algo N
+JovialMalhumurado,4,Bastante N 
+JovialMalhumurado,5,Totalmente N
+ReconfortadoDesconsolado,0,Totalmente P
+ReconfortadoDesconsolado,1,Bastante P
+ReconfortadoDesconsolado,2,Algo P
+ReconfortadoDesconsolado,3,Algo N
+ReconfortadoDesconsolado,4,Bastante N 
+ReconfortadoDesconsolado,5,Totalmente N
+ApoyadoCriticado,0,Totalmente P
+ApoyadoCriticado,1,Bastante P
+ApoyadoCriticado,2,Algo P
+ApoyadoCriticado,3,Algo N
+ApoyadoCriticado,4,Bastante N 
+ApoyadoCriticado,5,Totalmente N
+SosegadoDesasosegado,0,Totalmente P
+SosegadoDesasosegado,1,Bastante P
+SosegadoDesasosegado,2,Algo P
+SosegadoDesasosegado,3,Algo N
+SosegadoDesasosegado,4,Bastante N 
+SosegadoDesasosegado,5,Totalmente N
+ContentoDescontento,0,Totalmente P
+ContentoDescontento,1,Bastante P
+ContentoDescontento,2,Algo P
+ContentoDescontento,3,Algo N
+ContentoDescontento,4,Bastante N 
+ContentoDescontento,5,Totalmente N
+SeguroInseguro,0,Totalmente P
+SeguroInseguro,1,Bastante P
+SeguroInseguro,2,Algo P
+SeguroInseguro,3,Algo N
+SeguroInseguro,4,Bastante N 
+SeguroInseguro,5,Totalmente N
+GustoDisgusto,0,Totalmente P
+GustoDisgusto,1,Bastante P
+GustoDisgusto,2,Algo P
+GustoDisgusto,3,Algo N
+GustoDisgusto,4,Bastante N 
+GustoDisgusto,5,Totalmente N
+SatisfechoInsatisfecho,0,Totalmente P
+SatisfechoInsatisfecho,1,Bastante P
+SatisfechoInsatisfecho,2,Algo P
+SatisfechoInsatisfecho,3,Algo N
+SatisfechoInsatisfecho,4,Bastante N 
+SatisfechoInsatisfecho,5,Totalmente N
+AnchasCohibido,0,Totalmente P
+AnchasCohibido,1,Bastante P
+AnchasCohibido,2,Algo P
+AnchasCohibido,3,Algo N
+AnchasCohibido,4,Bastante N 
+AnchasCohibido,5,Totalmente N
+AnimadoDesanimado,0,Totalmente P
+AnimadoDesanimado,1,Bastante P
+AnimadoDesanimado,2,Algo P
+AnimadoDesanimado,3,Algo N
+AnimadoDesanimado,4,Bastante N 
+AnimadoDesanimado,5,Totalmente N
+EntendidoMalinterpretado,0,Totalmente P
+EntendidoMalinterpretado,1,Bastante P
+EntendidoMalinterpretado,2,Algo P
+EntendidoMalinterpretado,3,Algo N
+EntendidoMalinterpretado,4,Bastante N 
+EntendidoMalinterpretado,5,Totalmente N
+ComodoIncomodo,0,Totalmente P
+ComodoIncomodo,1,Bastante P
+ComodoIncomodo,2,Algo P
+ComodoIncomodo,3,Algo N
+ComodoIncomodo,4,Bastante N 
+ComodoIncomodo,5,Totalmente N
+AliviadoAtosigado,0,Totalmente P
+AliviadoAtosigado,1,Bastante P
+AliviadoAtosigado,2,Algo P
+AliviadoAtosigado,3,Algo N
+AliviadoAtosigado,4,Bastante N 
+AliviadoAtosigado,5,Totalmente N
+RespetadoInvadido,0,Totalmente P
+RespetadoInvadido,1,Bastante P
+RespetadoInvadido,2,Algo P
+RespetadoInvadido,3,Algo N
+RespetadoInvadido,4,Bastante N 
+RespetadoInvadido,5,Totalmente N
+RelajadoTenso,0,Totalmente P
+RelajadoTenso,1,Bastante P
+RelajadoTenso,2,Algo P
+RelajadoTenso,3,Algo N
+RelajadoTenso,4,Bastante N 
+RelajadoTenso,5,Totalmente N
+IntegradoMarginado,0,Totalmente P
+IntegradoMarginado,1,Bastante P
+IntegradoMarginado,2,Algo P
+IntegradoMarginado,3,Algo N
+IntegradoMarginado,4,Bastante N 
+IntegradoMarginado,5,Totalmente N
+SerenoAgitado,0,Totalmente P
+SerenoAgitado,1,Bastante P
+SerenoAgitado,2,Algo P
+SerenoAgitado,3,Algo N
+SerenoAgitado,4,Bastante N 
+SerenoAgitado,5,Totalmente N
+TranquiloNervioso,0,Totalmente P
+TranquiloNervioso,1,Bastante P
+TranquiloNervioso,2,Algo P
+TranquiloNervioso,3,Algo N
+TranquiloNervioso,4,Bastante N 
+TranquiloNervioso,5,Totalmente N
+DefendidoAtacado,0,Totalmente P
+DefendidoAtacado,1,Bastante P
+DefendidoAtacado,2,Algo P
+DefendidoAtacado,3,Algo N
+DefendidoAtacado,4,Bastante N 
+DefendidoAtacado,5,Totalmente N
+DichosoDesdichado,0,Totalmente P
+DichosoDesdichado,1,Bastante P
+DichosoDesdichado,2,Algo P
+DichosoDesdichado,3,Algo N
+DichosoDesdichado,4,Bastante N 
+DichosoDesdichado,5,Totalmente N
+DeshaogadoAgobiado,0,Totalmente P
+DeshaogadoAgobiado,1,Bastante P
+DeshaogadoAgobiado,2,Algo P
+DeshaogadoAgobiado,3,Algo N
+DeshaogadoAgobiado,4,Bastante N 
+DeshaogadoAgobiado,5,Totalmente N
+ComprendidoIncomprendido,0,Totalmente P
+ComprendidoIncomprendido,1,Bastante P
+ComprendidoIncomprendido,2,Algo P
+ComprendidoIncomprendido,3,Algo N
+ComprendidoIncomprendido,4,Bastante N 
+ComprendidoIncomprendido,5,Totalmente N
+CercanoDistante,0,Totalmente P
+CercanoDistante,1,Bastante P
+CercanoDistante,2,Algo P
+CercanoDistante,3,Algo N
+CercanoDistante,4,Bastante N 
+CercanoDistante,5,Totalmente N
+EstimuladoReprimido,0,Totalmente P
+EstimuladoReprimido,1,Bastante P
+EstimuladoReprimido,2,Algo P
+EstimuladoReprimido,3,Algo N
+EstimuladoReprimido,4,Bastante N 
+EstimuladoReprimido,5,Totalmente N
+BienMal,0,Totalmente P
+BienMal,1,Bastante P
+BienMal,2,Algo P
+BienMal,3,Algo N
+BienMal,4,Bastante N 
+BienMal,5,Totalmente N
+InsatisfaccionFamiliar,0,Totalmente baja
+InsatisfaccionFamiliar,1,Bastante baja
+InsatisfaccionFamiliar,2,Baja
+InsatisfaccionFamiliar,3,Alta
+InsatisfaccionFamiliar,4,Bastante alta
+InsatisfaccionFamiliar,5,Totalmente alta
+CantidadIntimos,0,0
+CantidadIntimos,1,1
+CantidadIntimos,2,2
+CantidadIntimos,3,3
+CantidadIntimos,4,4
+CantidadIntimos,5,5
+CantidadIntimos,6,6
+CantidadIntimos,7,7
+CantidadIntimos,8,8
+CantidadIntimos,9,9
+CantidadIntimos,10,10
+CantidadIntimos,12,12
+CantidadIntimos,13,13
+CantidadIntimos,14,14
+CantidadIntimos,15,15
+CantidadIntimos,16,16
+CantidadIntimos,17,17
+CantidadIntimos,18,18
+CantidadIntimos,20,20
+CantidadIntimos,29,29
+CantidadIntimos,30,30
+CantidadIntimos,35,35
+CantidadIntimos,43,43
+CantidadIntimos,45,45
+PersonaReposoCama,0,Siempre
+PersonaReposoCama,1,La mayoría de veces
+PersonaReposoCama,2,Algunas veces
+PersonaReposoCama,3,Pocas veces
+PersonaReposoCama,4,Nunca
+PersonaHablar,0,Siempre
+PersonaHablar,1,La mayoría de veces
+PersonaHablar,2,Algunas veces
+PersonaHablar,3,Pocas veces
+PersonaHablar,4,Nunca
+PersonaConsejos,0,Siempre
+PersonaConsejos,1,La mayoría de veces
+PersonaConsejos,2,Algunas veces
+PersonaConsejos,3,Pocas veces
+PersonaConsejos,4,Nunca
+PersonaDoctor,0,Siempre
+PersonaDoctor,1,La mayoría de veces
+PersonaDoctor,2,Algunas veces
+PersonaDoctor,3,Pocas veces
+PersonaDoctor,4,Nunca
+PersonaAmorAfecto,0,Siempre
+PersonaAmorAfecto,1,La mayoría de veces
+PersonaAmorAfecto,2,Algunas veces
+PersonaAmorAfecto,3,Pocas veces
+PersonaAmorAfecto,4,Nunca
+PersonaPasarBuenosRatos,0,Siempre
+PersonaPasarBuenosRatos,1,La mayoría de veces
+PersonaPasarBuenosRatos,2,Algunas veces
+PersonaPasarBuenosRatos,3,Pocas veces
+PersonaPasarBuenosRatos,4,Nunca
+PersonaEntenderSituacion,0,Siempre
+PersonaEntenderSituacion,1,La mayoría de veces
+PersonaEntenderSituacion,2,Algunas veces
+PersonaEntenderSituacion,3,Pocas veces
+PersonaEntenderSituacion,4,Nunca
+PersonaHablarSinPreocupaciones,0,Siempre
+PersonaHablarSinPreocupaciones,1,La mayoría de veces
+PersonaHablarSinPreocupaciones,2,Algunas veces
+PersonaHablarSinPreocupaciones,3,Pocas veces
+PersonaHablarSinPreocupaciones,4,Nunca
+PersonaAbrazo,0,Siempre
+PersonaAbrazo,1,La mayoría de veces
+PersonaAbrazo,2,Algunas veces
+PersonaAbrazo,3,Pocas veces
+PersonaAbrazo,4,Nunca
+PersonaRelajarse,0,Siempre
+PersonaRelajarse,1,La mayoría de veces
+PersonaRelajarse,2,Algunas veces
+PersonaRelajarse,3,Pocas veces
+PersonaRelajarse,4,Nunca
+PersonaQueCocine,0,Siempre
+PersonaQueCocine,1,La mayoría de veces
+PersonaQueCocine,2,Algunas veces
+PersonaQueCocine,3,Pocas veces
+PersonaQueCocine,4,Nunca
+PersonaDeseoConsejo,0,Siempre
+PersonaDeseoConsejo,1,La mayoría de veces
+PersonaDeseoConsejo,2,Algunas veces
+PersonaDeseoConsejo,3,Pocas veces
+PersonaDeseoConsejo,4,Nunca
+PersonaDespejarMente,0,Siempre
+PersonaDespejarMente,1,La mayoría de veces
+PersonaDespejarMente,2,Algunas veces
+PersonaDespejarMente,3,Pocas veces
+PersonaDespejarMente,4,Nunca
+PersonaQueHaceres,0,Siempre
+PersonaQueHaceres,1,La mayoría de veces
+PersonaQueHaceres,2,Algunas veces
+PersonaQueHaceres,3,Pocas veces
+PersonaQueHaceres,4,Nunca
+PersonaCompartirMiedos,0,Siempre
+PersonaCompartirMiedos,1,La mayoría de veces
+PersonaCompartirMiedos,2,Algunas veces
+PersonaCompartirMiedos,3,Pocas veces
+PersonaCompartirMiedos,4,Nunca
+PersonaSugiereManejarProblemas,0,Siempre
+PersonaSugiereManejarProblemas,1,La mayoría de veces
+PersonaSugiereManejarProblemas,2,Algunas veces
+PersonaSugiereManejarProblemas,3,Pocas veces
+PersonaSugiereManejarProblemas,4,Nunca
+PersonaDivertirse,0,Siempre
+PersonaDivertirse,1,La mayoría de veces
+PersonaDivertirse,2,Algunas veces
+PersonaDivertirse,3,Pocas veces
+PersonaDivertirse,4,Nunca
+PersonaEntiendeProblemas,0,Siempre
+PersonaEntiendeProblemas,1,La mayoría de veces
+PersonaEntiendeProblemas,2,Algunas veces
+PersonaEntiendeProblemas,3,Pocas veces
+PersonaEntiendeProblemas,4,Nunca
+PersonaAmarAmado,0,Siempre
+PersonaAmarAmado,1,La mayoría de veces
+PersonaAmarAmado,2,Algunas veces
+PersonaAmarAmado,3,Pocas veces
+PersonaAmarAmado,4,Nunca
+DiagnosticoDepresionAnsiedad,0,No Contesta
+DiagnosticoDepresionAnsiedad,1,No
+DiagnosticoDepresionAnsiedad,2,Si
+TCA,0,No
+TCA,1,Si
+AnsiedadDiagnosticada,0,No
+AnsiedadDiagnosticada,1,Si
+DepresionDiagnosticada,0,No
+DepresionDiagnosticada,1,Si
+EstresDiagnosticado,0,No
+EstresDiagnosticado,1,Si
+TrastornoLímitePersonalidad,0,No
+TrastornoLímitePersonalidad,1,Si
+BipolaridadDiagnosticada,0,No
+BipolaridadDiagnosticada,1,Si
+TOC,0,No
+TOC,1,Si
+TDAH,0,No
+TDAH,1,Si
+HipersensibilidadDolor,0,No
+HipersensibilidadDolor,1,Si
+TEPT,0,No
+TEPT,1,Si
+CantidadDiagnosticos,0,0
+CantidadDiagnosticos,1,1
+CantidadDiagnosticos,2,2
+CantidadDiagnosticos,3,3
+CantidadDiagnosticos,4,4
+ReporteBienestar,0,No Contesta
+ReporteBienestar,1,No
+ReporteBienestar,2,Si

@@ -1,0 +1,145 @@
+columna,nombre_amigable
+Edad,Edad
+Genero,Genero
+EstadoCivil,Estado Civil
+ProgramaAcademico,Programa Academico
+Semestre,Semestre
+PromedioAnterior,Promedio Anterior
+FrecuenciaSuspenderEstudios,Frecuencia de Pensar en Suspender Estudios
+EnfermedadFisica,Enfermedad Fisica
+TratamientoFarmacologico,Tratamiento Farmacologico
+CrisisConvulcionEpilepsia,Sufre de Crisis, Convulciones o Epilepsia?
+InfeccionCerebral,Infeccion Cerebral
+EnfermedadNeurologica,Enfermedad Neurologica
+ProblemasCardiovasculares,Problemas Cardiovasculares
+ProblemasVision,Problemas Vision
+ProblemasAudicion,Problemas Audicion
+Embarazo,Embarazo
+ProblemasDigestivos,Problemas Digestivos
+ProblemasRespiratorios,Problemas Respiratorios
+OvarioPoliquistico,Ovario Poliquistico
+Cafeina,Cafeina
+BebidasEnergizantes,Bebidas Energizantes
+Tabaco,Tabaco
+Alcohol,Alcohol
+Cannabis,Cannabis
+OtrosEstimulantes,Otros Estimulantes
+Inhalantes,Inhalantes
+Tranquilizantes,Tranquilizantes
+Opiaceos,Opiaceos
+Alucinogenos,Alucinogenos
+Cocaina,Cocaina
+AntecedentesFamiliares,Antecedentes Familiares de Cefalea
+LugarDolor,Lugar del Dolor
+IntensidadDolor,Intensidad del Dolor
+DuracionDolor,Duracion del Dolor
+FrecuenciaDolor,Frecuencia del Dolor
+Ruido/Luz,Sintoma Cefalea: Sensibilidad al Ruido/Luz 
+Nauseas,Sintoma Cefalea: Nauseas
+EdemaOcular,Sintoma Cefalea: Edema Ocular
+Alteraciones,Sintoma Cefalea: Alteraciones Visuales o Sensoriales
+EspasmosFaciales,Sintoma Cefalea: Espasmos Faciales
+ActividadFisica,Actividad Fisica Empeora el Dolor
+InasistenciaDolor,Inasistencia por el Dolor
+IndiceDolor,Indice del Dolor
+HoraDormir,Hora de Dormir
+"TiempoEnDormirse
+",Tiempo que tarda en Dormirse
+TiempoDeSueno,Tiempo de Sueño
+NoDormirEn30Mins,Se Demora mas de 30mins en Dormirse
+Despertarse,Se Despierta a mitad del Sueño
+LevantarseSanitario,Se Despierta para ir al Baño
+NoRespirarBienSueno,No Respira bien mientras Duerme
+RoncarRuidosamente,Ronca Ruidosamente
+SentirFrio,Siente mucho Frio al Dormir
+SentirCalor,Siente mucho Calor al Dormir
+Pesadillas,Tiene Pesadillas
+DoloresSueno,Siente Dolor al Dormir
+MedicinasDormir,Toma Medicinas para Dormir
+MantenerseDespierto,Le cuesta Mantenerse Despierto
+AnimosParaActividades,Mantener Animos Para Actividades
+CalidadSueno,Calidad Sueño
+PocoInteres,Tiene Poco Interes en hacer las Cosas
+DecaidoDeprimido,Se Siente Decaido o Deprimido
+MuchoPocoSueno,Tiene Mucho o Poco Sue o
+Cansado,Se Siente Cansado
+MuchoPocoApetito,Tiene Mucho o Poco Apetito
+SentimientoFracaso,Sentimiento de Fracaso
+PocaConcentracion,Se Siente Poca Concentracion
+MoverRapidoLento,Siente que se Mueve muy Rapido o Lento
+PensamientosSuicidas,Pensamientos Suicidas o Autolesivos
+Ansioso,Se Siente Ansioso
+Tension,Siente Tension
+Temor,Siente Temor
+Insomio,Siente Insomio
+Intelectual,Se siente Torpe
+Deprimido,Se Siente Deprimido
+SomaticoMuscular,Molestias Musculares
+SomaticoSensorial,Molestias Sensoriales
+Cardiovascular,Sintomas Cardiovasculares
+Respiratorio,Sintomas Respiratorios
+Gastrointestinales,Sintomas Gastrointestinales
+Genitourinarios,Sintomas Genitourinarios
+Autonomos,Sintomas Autonomos
+Comportamiento,Comportamiento durante el Cuestionario
+FelizInfeliz,En Familia se siente: Feliz o Infeliz
+AcompanadoAislado,En Familia se siente: Acompañado o Aislado
+JovialMalhumurado,En Familia se siente: Jovial o Malhumurado
+ReconfortadoDesconsolado,En Familia se siente: Reconfortado o Desconsolado
+ApoyadoCriticado,En Familia se siente: Apoyado o Criticado
+SosegadoDesasosegado,En Familia se siente: Sosegado o Desasosegado
+ContentoDescontento,En Familia se siente: Contento o Descontento
+SeguroInseguro,En Familia se siente: Seguro o Inseguro
+GustoDisgusto,En Familia se siente: a Gusto o Disgusto
+SatisfechoInsatisfecho,En Familia se siente: Satisfecho o Insatisfecho
+AnchasCohibido,En Familia se siente: a sus Anchas o Cohibido
+AnimadoDesanimado,En Familia se siente: Animado o Desanimado
+EntendidoMalinterpretado,En Familia se siente: Entendido o Malinterpretado
+ComodoIncomodo,En Familia se siente: Comodo o Incomodo
+AliviadoAtosigado,En Familia se siente: Aliviado o Atosigado
+RespetadoInvadido,En Familia se siente: Respetado o Invadido
+RelajadoTenso,En Familia se siente: Relajado o Tenso
+IntegradoMarginado,En Familia se siente: Integrado o Marginado
+SerenoAgitado,En Familia se siente: Sereno o Agitado
+TranquiloNervioso,En Familia se siente: Tranquilo o Nervioso
+DefendidoAtacado,En Familia se siente: Defendido o Atacado
+DichosoDesdichado,En Familia se siente: Dichoso o Desdichado
+DeshaogadoAgobiado,En Familia se siente: Deshaogado o Agobiado
+ComprendidoIncomprendido,En Familia se siente: Comprendido o Incomprendido
+CercanoDistante,En Familia se siente: Cercano o Distante
+EstimuladoReprimido,En Familia se siente: Estimulado o Reprimido
+BienMal,En Familia se siente: Bien o Mal
+InsatisfaccionFamiliar,Insatisfaccion Familiar General
+CantidadIntimos,Cantidad de Personas Intimas
+PersonaReposoCama,Persona para Reposo en Cama
+PersonaHablar,Persona para Hablar
+PersonaConsejos,Persona para Consejos
+PersonaDoctor,Personaque Acompañe al Doctor
+PersonaAmorAfecto,Persona para Recibir Amor o Afecto
+PersonaPasarBuenosRatos,Persona para Pasar Buenos Ratos
+PersonaEntenderSituacion,Persona para Entender una Situacion
+PersonaHablarSinPreocupaciones,Persona para Hablar sin Preocupaciones
+PersonaAbrazo,Persona para un Abrazo
+PersonaRelajarse,Persona para Relajarse
+PersonaQueCocine,Persona que le Cocine
+PersonaDeseoConsejo,Persona de la que Desee Consejo
+PersonaDespejarMente,Persona para Despejar Mente
+PersonaQueHaceres,Persona para los que Haceres
+PersonaCompartirMiedos,Persona para Compartir Miedos
+PersonaSugiereManejarProblemas,Persona que Sugiere como Manejar Problemas
+PersonaDivertirse,Persona para Divertirse
+PersonaEntiendeProblemas,Persona que Entiende sus Problemas
+PersonaAmarAmado,Persona para Amar y ser Amado
+DiagnosticoDepresionAnsiedad,Tiene algun Diagnostico Psicologico
+TCA,Trastorno de Conducta Alimentaria
+AnsiedadDiagnosticada,Ansiedad Diagnosticada
+DepresionDiagnosticada,Depresion Diagnosticada
+EstresDiagnosticado,Estres Diagnosticado
+TrastornoLimitePersonalidad,Trastorno Limite Personalidad
+BipolaridadDiagnosticada,Bipolaridad Diagnosticada
+TOC,Trastorno Obsesivo Compulsivo
+TDAH,Trastorno por Deficit de Atencion e Hiperactividad
+HipersensibilidadDolor,Hipersensibilidad Dolor
+TEPT,Trastorno de Estres Postraumatico
+CantidadDiagnosticos,Cantidad de Diagnosticos
+ReporteBienestar,Reporto a Bienestar?
