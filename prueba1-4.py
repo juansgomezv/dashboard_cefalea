@@ -287,6 +287,10 @@ def dataframe_hash(df):
 
 st.sidebar.subheader("Hash de datos")
 st.sidebar.write(f"Hash de datos: {dataframe_hash(df)}")
+st.sidebar.write("Shape:", df.shape)
+st.sidebar.write("Columnas:", list(df.columns))
+st.sidebar.write("Primeras filas:")
+st.sidebar.write(df.head())
 
 
 
