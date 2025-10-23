@@ -170,107 +170,86 @@ tab1, tab2 = st.tabs(["Agrupaciones", "Predicciones"])
 with tab1:
     st.header("Análisis de Agrupaciones")
 
-    # Dividir en 1/3 (UMAP) y 2/3 (tablas + selector variable)
-    col_umap, col_right = st.columns([1, 2])
+    # --- Primera fila: UMAP + Tabla 1 + Tabla 2 ---
+    col_umap, col_tab1, col_tab2 = st.columns([1.2, 1, 1])
 
-    # ----------------- COLUMNA IZQUIERDA (UMAP + selector) -----------------
+    # ----------------- COLUMNA 1 (UMAP) -----------------
     with col_umap:
         st.markdown("#### Selecciona un Grupo")
-        # Si no hay proyección disponible, avisar
         if df_umap_vis.empty:
             st.info("Visualización UMAP no disponible.")
             cluster_id = None
-            cluster_seleccionado = None
         else:
             unique_clusters = sorted(df_umap_vis["grupo"].unique())
             opciones_clusters = {f"Grupo {g+1}": g for g in unique_clusters}
             cluster_seleccionado = st.selectbox("", list(opciones_clusters.keys()))
             cluster_id = opciones_clusters[cluster_seleccionado]
 
-            # Dibujar UMAP (ocupando todo el espacio de la columna)
-            fig_umap, ax_umap = plt.subplots(figsize=(5, 7))
+            fig_umap, ax_umap = plt.subplots(figsize=(4.5, 3.5))
             palette = sns.color_palette("tab10", n_colors=max(3, len(unique_clusters)))
             cluster_to_color = {cid: palette[i % len(palette)] for i, cid in enumerate(unique_clusters)}
 
             for cid in unique_clusters:
                 cluster_data = df_umap_vis[df_umap_vis["grupo"] == cid]
-
-                # Color: seleccionado -> color real; otros -> gris
-                if cid == cluster_id:
-                    color = cluster_to_color[cid]
-                    alpha = 0.9
-                else:
-                    color = "#D3D3D3"
-                    alpha = 0.25
-
+                color = cluster_to_color[cid] if cid == cluster_id else "#D3D3D3"
+                alpha = 0.9 if cid == cluster_id else 0.25
                 ax_umap.scatter(cluster_data["x"], cluster_data["y"], s=40, c=[color], alpha=alpha)
 
-                # Dibujar polígono y rellenarlo solo para el seleccionado
                 if cid == cluster_id and len(cluster_data) >= 3:
                     hull = ConvexHull(cluster_data[["x", "y"]].values)
                     hull_points = cluster_data.iloc[hull.vertices][["x", "y"]].values
-
-                    # Borde del polígono
                     ax_umap.plot(
                         np.append(hull_points[:, 0], hull_points[0, 0]),
                         np.append(hull_points[:, 1], hull_points[0, 1]),
                         c=color, linewidth=1.5
                     )
-                    # Relleno translúcido para destacar
                     ax_umap.fill(hull_points[:, 0], hull_points[:, 1], color=color, alpha=0.20)
 
-            ax_umap.set_title("")
             ax_umap.set_xticks([]); ax_umap.set_yticks([])
             st.pyplot(fig_umap)
 
-    # ----------------- COLUMNA DERECHA (2/3) -----------------
-    with col_right:
-        # --- Primera fila en col_right: dos columnas para Tabla 1 y Tabla 2 ---
-        row1_col1, row1_col2 = st.columns(2)
-
-        # Tabla 1: Top 10 características
-        with row1_col1:
-            st.subheader("🔹 Top 10 características")
-            if (cluster_id is None) or (cluster_id not in tabla_medias.index):
-                st.info("Selecciona un grupo válido en la izquierda.")
-            else:
-                # seleccionar y mostrar top 10 (modo + traducción)
-                sorted_vars = tabla_medias.loc[cluster_id].sort_values()
-                top_10 = sorted_vars.tail(10)
-                real_values_combined = tabla_original.loc[cluster_id][top_10.index]
-                tabla_real_mostrar = real_values_combined.copy()
-                for col in tabla_real_mostrar.index:
-                    tabla_real_mostrar[col] = traducir_valor_aproximado(col, tabla_real_mostrar[col], mapeo_valores)
-                tabla_real_mostrar.index = [nombre_columnas.get(c, c) for c in tabla_real_mostrar.index]
-                st.dataframe(tabla_real_mostrar.to_frame(name="Valor real"))
-
-        # Tabla 2: Variables clínicas
-        with row1_col2:
-            st.subheader("🩺 Variables clínicas")
-            if (cluster_id is None) or (cluster_id not in tabla_original.index):
-                st.info("Selecciona un grupo válido en la izquierda.")
-            else:
-                cefalea_real = tabla_original.loc[cluster_id][cefalea_vars_presentes]
-                cefalea_para_mostrar = cefalea_real.copy()
-                for col in cefalea_para_mostrar.index:
-                    cefalea_para_mostrar[col] = traducir_valor_aproximado(col, cefalea_para_mostrar[col], mapeo_valores)
-                cefalea_para_mostrar.index = [nombre_columnas.get(c, c) for c in cefalea_para_mostrar.index]
-                st.dataframe(cefalea_para_mostrar.to_frame(name="Valor real"))
-
-        # --- Segunda fila en col_right: selector y contenido de variable específica (ocupa todo el ancho de col_right) ---
-        st.markdown("---")
-        st.subheader("🔎 Explorar variable específica")
-        opciones_vars = {nombre_columnas.get(col, col): col for col in tabla_original.columns}
-        seleccion_amigable = st.selectbox("Selecciona una variable:", sorted(opciones_vars.keys()))
-        seleccion_var = opciones_vars[seleccion_amigable]
-
-        if (cluster_id is None) or (cluster_id not in tabla_original.index):
-            st.info("Selecciona un grupo válido para ver el valor de la variable.")
+    # ----------------- COLUMNA 2 (Tabla 1) -----------------
+    with col_tab1:
+        st.subheader("🔹 Top 10 características")
+        if (cluster_id is None) or (cluster_id not in tabla_medias.index):
+            st.info("Selecciona un grupo válido.")
         else:
-            valor_original = tabla_original.loc[cluster_id][seleccion_var]
-            valor_traducido = traducir_valor_aproximado(seleccion_var, valor_original, mapeo_valores)
-            nombre_amigable = nombre_columnas.get(seleccion_var, seleccion_var)
-            st.metric(label=nombre_amigable, value=str(valor_traducido))
+            sorted_vars = tabla_medias.loc[cluster_id].sort_values()
+            top_10 = sorted_vars.tail(10)
+            real_values_combined = tabla_original.loc[cluster_id][top_10.index]
+            tabla_real_mostrar = real_values_combined.copy()
+            for col in tabla_real_mostrar.index:
+                tabla_real_mostrar[col] = traducir_valor_aproximado(col, tabla_real_mostrar[col], mapeo_valores)
+            tabla_real_mostrar.index = [nombre_columnas.get(c, c) for c in tabla_real_mostrar.index]
+            st.dataframe(tabla_real_mostrar.to_frame(name="Valor real"))
+
+    # ----------------- COLUMNA 3 (Tabla 2) -----------------
+    with col_tab2:
+        st.subheader("🩺 Variables clínicas")
+        if (cluster_id is None) or (cluster_id not in tabla_original.index):
+            st.info("Selecciona un grupo válido.")
+        else:
+            cefalea_real = tabla_original.loc[cluster_id][cefalea_vars_presentes]
+            cefalea_para_mostrar = cefalea_real.copy()
+            for col in cefalea_para_mostrar.index:
+                cefalea_para_mostrar[col] = traducir_valor_aproximado(col, cefalea_para_mostrar[col], mapeo_valores)
+            cefalea_para_mostrar.index = [nombre_columnas.get(c, c) for c in cefalea_para_mostrar.index]
+            st.dataframe(cefalea_para_mostrar.to_frame(name="Valor real"))
+
+    # --- Segunda fila: Explorar variable específica ---
+    st.markdown("---")
+    st.subheader("🔎 Explorar variable específica")
+    opciones_vars = {nombre_columnas.get(col, col): col for col in tabla_original.columns}
+    seleccion_amigable = st.selectbox("Selecciona una variable:", sorted(opciones_vars.keys()))
+    seleccion_var = opciones_vars[seleccion_amigable]
+
+    if (cluster_id is None) or (cluster_id not in tabla_original.index):
+        st.info("Selecciona un grupo válido.")
+    else:
+        valor_original = tabla_original.loc[cluster_id][seleccion_var]
+        valor_traducido = traducir_valor_aproximado(seleccion_var, valor_original, mapeo_valores)
+        nombre_amigable = nombre_columnas.get(seleccion_var, seleccion_var)
+        st.metric(label=nombre_amigable, value=str(valor_traducido))
 
 
 
