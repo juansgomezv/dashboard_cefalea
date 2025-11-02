@@ -12,6 +12,7 @@ from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import accuracy_score
 from scipy.spatial import ConvexHull
+import plotly.graph_objects as go
 
 # ######################################################FUNCIONES DE TRADUCCIÓN##################################################################################
 def cargar_mapeo_valores(path):
@@ -166,25 +167,41 @@ with col_total:
 
 tab1, tab2 = st.tabs(["Agrupaciones", "Predicciones"])
 
-# ###################################################### TAB AGRUPACIONES (diseño en tercios) ######################################################
+# ###################################################### TAB AGRUPACIONES ######################################################
 with tab1:
-    st.header("Análisis de Agrupaciones")
+    with col_title:
+        st.header("Análisis de Agrupaciones")
 
     # --- Primera fila: UMAP + Tabla 1 + Tabla 2 ---
     col_umap, col_tab1, col_tab2 = st.columns([1.2, 1, 1])
 
     # ----------------- COLUMNA 1 (UMAP) -----------------
     with col_umap:
-        st.markdown("#### Selecciona un Grupo")
         if df_umap_vis.empty:
             st.info("Visualización UMAP no disponible.")
             cluster_id = None
         else:
             unique_clusters = sorted(df_umap_vis["grupo"].unique())
             opciones_clusters = {f"Grupo {g+1}": g for g in unique_clusters}
-            cluster_seleccionado = st.selectbox("", list(opciones_clusters.keys()))
-            cluster_id = opciones_clusters[cluster_seleccionado]
 
+            # Dividir espacio: mitad para dropdown, mitad para métrica
+            col_drop, col_info = st.columns([1, 1])
+
+            with col_drop:
+                cluster_seleccionado = st.selectbox("", list(opciones_clusters.keys()))
+                cluster_id = opciones_clusters[cluster_seleccionado]
+
+            with col_info:
+                n_estudiantes_grupo = len(df_original[df_original["grupo"] == cluster_id])
+                st.markdown(
+                    f"<div style='text-align:center; line-height:1;'>"
+                    f"<span style='font-size:36px; font-weight:bold;'>{n_estudiantes_grupo}</span><br>"
+                    f"<span style='font-size:16px; color:gray;'>estudiantes</span>"
+                    f"</div>",
+                    unsafe_allow_html=True
+                )
+
+            # --- Gráfico UMAP ---
             fig_umap, ax_umap = plt.subplots(figsize=(4.5, 3.5))
             palette = sns.color_palette("tab10", n_colors=max(3, len(unique_clusters)))
             cluster_to_color = {cid: palette[i % len(palette)] for i, cid in enumerate(unique_clusters)}
@@ -236,27 +253,101 @@ with tab1:
             cefalea_para_mostrar.index = [nombre_columnas.get(c, c) for c in cefalea_para_mostrar.index]
             st.dataframe(cefalea_para_mostrar.to_frame(name="Valor real"))
 
-    # --- Segunda fila: Explorar variable específica ---
+    # --- Segunda fila: Explorar variable + Perfil Multivariante ---
     st.markdown("---")
-    st.subheader("🔎 Explorar variable específica")
-    opciones_vars = {nombre_columnas.get(col, col): col for col in tabla_original.columns}
-    seleccion_amigable = st.selectbox("Selecciona una variable:", sorted(opciones_vars.keys()))
-    seleccion_var = opciones_vars[seleccion_amigable]
+    col_explorar, col_radar = st.columns([1, 1])
 
-    if (cluster_id is None) or (cluster_id not in tabla_original.index):
-        st.info("Selecciona un grupo válido.")
-    else:
-        valor_original = tabla_original.loc[cluster_id][seleccion_var]
-        valor_traducido = traducir_valor_aproximado(seleccion_var, valor_original, mapeo_valores)
-        nombre_amigable = nombre_columnas.get(seleccion_var, seleccion_var)
-        st.metric(label=nombre_amigable, value=str(valor_traducido))
+    # ----------------- EXPLORAR VARIABLE -----------------
+    with col_explorar:
+        st.subheader("🔎 Explorar variable específica")
+
+        opciones_vars = {nombre_columnas.get(col, col): col for col in tabla_original.columns}
+        seleccion_amigable = st.selectbox("Selecciona una variable:", sorted(opciones_vars.keys()))
+        seleccion_var = opciones_vars[seleccion_amigable]
+
+        if seleccion_var not in df_original.columns:
+            st.info("Selecciona una variable válida.")
+        else:
+            # Calcular moda (valor más común) por grupo
+            valores_por_grupo = df_original.groupby("grupo")[seleccion_var].agg(
+                lambda x: x.mode().iloc[0] if len(x.mode()) > 0 else np.nan
+            )
+
+            # Traducir los valores de la variable
+            valores_traducidos = [
+                traducir_valor_aproximado(seleccion_var, v, mapeo_valores)
+                for v in valores_por_grupo.values
+            ]
+
+            # Crear DataFrame temporal para graficar
+            df_plot = pd.DataFrame({
+                "Grupo": [f"{g+1}" for g in valores_por_grupo.index],
+                "Valor": valores_por_grupo.values,
+                "Valor traducido": valores_traducidos
+            })
+
+            # Obtener todos los valores posibles de esa variable (desde el mapeo)
+            if seleccion_var in mapeo_valores:
+                posibles_valores = [v[0] for v in mapeo_valores[seleccion_var]]
+                etiquetas_traducidas = [v[1] for v in mapeo_valores[seleccion_var]]
+            else:
+                posibles_valores = sorted(df_plot["Valor"].unique())
+                etiquetas_traducidas = [traducir_valor_aproximado(seleccion_var, v, mapeo_valores) for v in posibles_valores]
+
+            # Crear gráfico de barras
+            fig_bar, ax_bar = plt.subplots(figsize=(6, 3))
+            sns.barplot(
+                data=df_plot,
+                x="Grupo",
+                y="Valor",
+                palette="Blues_d",
+                ax=ax_bar
+            )
+
+            # Forzar eje Y con todos los valores posibles (aunque no aparezcan)
+            ax_bar.set_yticks(posibles_valores)
+            ax_bar.set_yticklabels(etiquetas_traducidas)
+
+            # Ajustes visuales
+            ax_bar.set_xlabel("Grupo")
+            ax_bar.set_ylabel(seleccion_amigable)
+            ax_bar.set_title("Comparación entre grupos")
+            st.pyplot(fig_bar)
 
 
 
-# ######################################################TAB BOSQUE ALEATORIO INTUITIVO######################################################################################
+    # ----------------- PERFIL MULTIVARIABLE -----------------
+    with col_radar:
+        st.subheader("📈 Perfil Multivariante por grupo")
+        import plotly.graph_objects as go
+
+        grupos_radar = st.multiselect("Selecciona grupos a comparar", sorted(tabla_scores.index), default=[0, 1])
+        vars_radar = [v for v in cefalea_vars_presentes if v in tabla_scores.columns]
+
+        fig = go.Figure()
+        for g in grupos_radar:
+            valores = tabla_scores.loc[g, vars_radar].astype(float).values
+            fig.add_trace(go.Scatterpolar(
+                r=valores,
+                theta=[nombre_columnas.get(v, v) for v in vars_radar],
+                fill='toself',
+                name=f'Grupo {g}'
+            ))
+
+        fig.update_layout(
+            polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
+            title="Comparativa de perfiles clínicos entre grupos",
+            showlegend=True
+        )
+        st.plotly_chart(fig, use_container_width=True)
+
+
+
+
+# ###################################################### TAB BOSQUE ALEATORIO ######################################################
 with tab2:
     if rf_pipeline is not None:
-        col1, col2 = st.columns([3, 1]) 
+        col1, col2 = st.columns([3, 1])
         with col1:
             st.header("Crear un Caso Personalizado")
         with col2:
@@ -273,10 +364,7 @@ with tab2:
         ]
 
         model_cols = X_train.columns.tolist()
-
-        caso_df = pd.DataFrame([{
-            col: df_original[col].mode()[0] for col in model_cols
-        }])
+        caso_df = pd.DataFrame([{col: df_original[col].mode()[0] for col in model_cols}])
 
         fila1_cols = st.columns(5)
         fila2_cols = st.columns(5)
@@ -286,29 +374,21 @@ with tab2:
             traducciones = [traducir_valor_aproximado(var, v, mapeo_valores) for v in valores_originales]
             valores_display = sorted(traducciones)
 
-            if i < 5:
-                fila = fila1_cols[i]
-            else:
-                fila = fila2_cols[i - 5]
-
+            fila = fila1_cols[i] if i < 5 else fila2_cols[i - 5]
             valor_inicial = traducir_valor_aproximado(var, caso_df[var].iloc[0], mapeo_valores)
-
             seleccionado = fila.selectbox(
                 f"{nombre_columnas.get(var, var)}",
                 valores_display,
                 index=valores_display.index(valor_inicial)
             )
-
             for val_original, val_trad in zip(valores_originales, traducciones):
                 if val_trad == seleccionado:
                     caso_df[var] = val_original
                     break
 
         pred_caso = rf_pipeline.predict(caso_df[model_cols])[0]
-
         traduccion_dolor = {0: "Muy bajo", 1: "Bajo", 2: "Medio", 3: "Alto"}
         pred_caso_trad = traduccion_dolor.get(pred_caso, pred_caso)
-
         st.markdown(f"### 🔹 Predicción del Indice de Dolor: **{pred_caso_trad}**")
 
 
