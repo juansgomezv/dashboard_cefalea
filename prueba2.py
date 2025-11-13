@@ -334,7 +334,6 @@ with tab1:
 
         fig.update_layout(
             polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-            title="Comparativa de perfiles clínicos entre grupos",
             showlegend=True
         )
         st.plotly_chart(fig, use_container_width=True)
