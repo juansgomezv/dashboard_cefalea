@@ -169,8 +169,6 @@ tab1, tab2 = st.tabs(["Agrupaciones", "Predicciones"])
 
 # ###################################################### TAB AGRUPACIONES ######################################################
 with tab1:
-    with col_title:
-        st.header("Análisis de Agrupaciones")
 
     # --- Primera fila: UMAP + Tabla 1 + Tabla 2 ---
     col_umap, col_tab1, col_tab2 = st.columns([1.2, 1, 1])
@@ -390,6 +388,8 @@ with tab2:
         traduccion_dolor = {0: "Muy bajo", 1: "Bajo", 2: "Medio", 3: "Alto"}
         pred_caso_trad = traduccion_dolor.get(pred_caso, pred_caso)
         st.markdown(f"### 🔹 Predicción del Indice de Dolor: **{pred_caso_trad}**")
+
+
 
 
 
