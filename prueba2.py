@@ -81,9 +81,9 @@ df_original = df_original.reset_index(drop=True)
 X_kmodes = df_original.copy()  
 
 km = KModes(
-    n_clusters=10,     # Mejor valor encontrado
-    init="Huang",      # Mejor inicialización
-    n_init=10,         # Número de inicializaciones
+    n_clusters=10,     
+    init="Huang",      
+    n_init=10,         
     random_state=42
 )
 
@@ -170,10 +170,8 @@ tab1, tab2 = st.tabs(["Agrupaciones", "Predicciones"])
 # ###################################################### TAB AGRUPACIONES ######################################################
 with tab1:
 
-    # --- Primera fila: UMAP + Tabla 1 + Tabla 2 ---
     col_umap, col_tab1, col_tab2 = st.columns([1.2, 1, 1])
 
-    # ----------------- COLUMNA 1 (UMAP) -----------------
     with col_umap:
         if df_umap_vis.empty:
             st.info("Visualización UMAP no disponible.")
@@ -182,7 +180,6 @@ with tab1:
             unique_clusters = sorted(df_umap_vis["grupo"].unique())
             opciones_clusters = {f"Grupo {g+1}": g for g in unique_clusters}
 
-            # Dividir espacio: mitad para dropdown, mitad para métrica
             col_drop, col_info = st.columns([1, 1])
 
             with col_drop:
@@ -199,7 +196,6 @@ with tab1:
                     unsafe_allow_html=True
                 )
 
-            # --- Gráfico UMAP ---
             fig_umap, ax_umap = plt.subplots(figsize=(4.5, 3.5))
             palette = sns.color_palette("tab10", n_colors=max(3, len(unique_clusters)))
             cluster_to_color = {cid: palette[i % len(palette)] for i, cid in enumerate(unique_clusters)}
@@ -266,25 +262,21 @@ with tab1:
         if seleccion_var not in df_original.columns:
             st.info("Selecciona una variable válida.")
         else:
-            # Calcular moda (valor más común) por grupo
             valores_por_grupo = df_original.groupby("grupo")[seleccion_var].agg(
                 lambda x: x.mode().iloc[0] if len(x.mode()) > 0 else np.nan
             )
 
-            # Traducir los valores de la variable
             valores_traducidos = [
                 traducir_valor_aproximado(seleccion_var, v, mapeo_valores)
                 for v in valores_por_grupo.values
             ]
 
-            # Crear DataFrame temporal para graficar
             df_plot = pd.DataFrame({
                 "Grupo": [f"{g+1}" for g in valores_por_grupo.index],
                 "Valor": valores_por_grupo.values,
                 "Valor traducido": valores_traducidos
             })
 
-            # Obtener todos los valores posibles de esa variable (desde el mapeo)
             if seleccion_var in mapeo_valores:
                 posibles_valores = [v[0] for v in mapeo_valores[seleccion_var]]
                 etiquetas_traducidas = [v[1] for v in mapeo_valores[seleccion_var]]
@@ -292,7 +284,6 @@ with tab1:
                 posibles_valores = sorted(df_plot["Valor"].unique())
                 etiquetas_traducidas = [traducir_valor_aproximado(seleccion_var, v, mapeo_valores) for v in posibles_valores]
 
-            # Crear gráfico de barras
             fig_bar, ax_bar = plt.subplots(figsize=(6, 3))
             sns.barplot(
                 data=df_plot,
@@ -302,7 +293,6 @@ with tab1:
                 ax=ax_bar
             )
 
-            # Forzar eje Y con todos los valores posibles (aunque no aparezcan)
             ax_bar.set_yticks(posibles_valores)
             ax_bar.set_yticklabels(etiquetas_traducidas)
 
@@ -312,6 +302,81 @@ with tab1:
             ax_bar.set_title("Comparación entre grupos")
             st.pyplot(fig_bar)
 
+    # ----------------------- EXPORTAR RESUMEN GLOBAL DE TOP10 Y CLÍNICAS -----------------------
+    st.markdown("---")
+    st.subheader("📤 Exportar Resumen Global")
+
+    if st.button("Generar archivo Excel"):
+        try:
+            import io
+            from openpyxl import Workbook
+            from openpyxl.utils.dataframe import dataframe_to_rows
+
+            wb = Workbook()
+            ws1 = wb.active
+            ws1.title = "Top10_por_grupo"
+
+            # ------------------------ TABLA 1: TOP 10 CARACTERÍSTICAS ------------------------
+            filas_top10 = []
+
+            for g in sorted(tabla_medias.index):
+                sorted_vars = tabla_medias.loc[g].sort_values()
+                top_10 = sorted_vars.tail(10)
+
+                real_values = tabla_original.loc[g][top_10.index]
+                for var, val in real_values.items():
+                    val_trad = traducir_valor_aproximado(var, val, mapeo_valores)
+                    nombre_trad = nombre_columnas.get(var, var)
+
+                    filas_top10.append({
+                        "Característica": nombre_trad,
+                        "Grupo": f"Grupo {g+1}",
+                        "Valor real": val_trad
+                    })
+
+            import pandas as pd
+            df_top10 = pd.DataFrame(filas_top10)
+
+            for row in dataframe_to_rows(df_top10, index=False, header=True):
+                ws1.append(row)
+
+            # ------------------------ TABLA 2: VARIABLES CLÍNICAS ------------------------
+            ws2 = wb.create_sheet("Clinicas_por_grupo")
+
+            filas_clinicas = []
+
+            for g in sorted(tabla_original.index):
+                clinicas = tabla_original.loc[g][cefalea_vars_presentes]
+
+                for var, val in clinicas.items():
+                    val_trad = traducir_valor_aproximado(var, val, mapeo_valores)
+                    nombre_trad = nombre_columnas.get(var, var)
+
+                    filas_clinicas.append({
+                        "Variable clínica": nombre_trad,
+                        "Grupo": f"Grupo {g+1}",
+                        "Valor real": val_trad
+                    })
+
+            df_clinicas = pd.DataFrame(filas_clinicas)
+
+            for row in dataframe_to_rows(df_clinicas, index=False, header=True):
+                ws2.append(row)
+
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            st.success("✅ Archivo generado correctamente ✅")
+            st.download_button(
+                label="⬇️ Descargar Resumen_Global.xlsx ⬇️",
+                data=output,
+                file_name="Resumen_Global.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+            )
+
+        except Exception as e:
+            st.error(f"Error al generar el archivo: {e}")
 
 
     # ----------------- PERFIL MULTIVARIABLE -----------------
@@ -319,26 +384,39 @@ with tab1:
         st.subheader("📈 Perfil Multivariante por grupo")
         import plotly.graph_objects as go
 
-        grupos_radar = st.multiselect("Selecciona grupos a comparar", sorted(tabla_scores.index), default=[0, 1])
-        vars_radar = [v for v in cefalea_vars_presentes if v in tabla_scores.columns]
+        grupos_radar = st.multiselect(
+            "Selecciona grupos a comparar",
+            [f"Grupo {i+1}" for i in sorted(tabla_scores.index)],
+            default=["Grupo 1", "Grupo 2"]
+        )
 
+        vars_radar = [v for v in cefalea_vars_presentes if v in tabla_scores.columns]
         fig = go.Figure()
-        for g in grupos_radar:
+
+        for g_nombre in grupos_radar:
+            g = int(g_nombre.split(" ")[1]) - 1 
             valores = tabla_scores.loc[g, vars_radar].astype(float).values
             fig.add_trace(go.Scatterpolar(
                 r=valores,
                 theta=[nombre_columnas.get(v, v) for v in vars_radar],
                 fill='toself',
-                name=f'Grupo {g}'
+                name=f'Grupo {g+1}', 
+                opacity=0.7
             ))
 
         fig.update_layout(
-            polar=dict(radialaxis=dict(visible=True, range=[0, 1])),
-            showlegend=True
+            showlegend=True,
+            polar=dict(
+                radialaxis=dict(
+                    visible=False,  
+                    range=[0, 1]
+                ),
+                angularaxis=dict(showline=False, linewidth=0)
+            ),
+            template="plotly_dark"
         )
+
         st.plotly_chart(fig, use_container_width=True)
-
-
 
 
 # ###################################################### TAB BOSQUE ALEATORIO ######################################################
@@ -346,14 +424,14 @@ with tab2:
     if rf_pipeline is not None:
         col1, col2 = st.columns([3, 1])
         with col1:
-            st.header("Crear un Caso Personalizado")
+            st.header("Crear un Caso Personalizado ✏️")
         with col2:
             st.markdown(
                 f"<p style='text-align: right; font-size:18px;'>Exactitud del modelo: <b>{exactitud_test:.1%}</b></p>",
                 unsafe_allow_html=True
             )
 
-        st.subheader("Características más Relevantes")
+        st.subheader("Características más Relevantes ⬆️")
 
         drop_vars = [
             'InasistenciaDolor', 'IntensidadDolor', 'DuracionDolor', 'FrecuenciaDolor',
@@ -386,8 +464,7 @@ with tab2:
         pred_caso = rf_pipeline.predict(caso_df[model_cols])[0]
         traduccion_dolor = {0: "Muy bajo", 1: "Bajo", 2: "Medio", 3: "Alto"}
         pred_caso_trad = traduccion_dolor.get(pred_caso, pred_caso)
-        st.markdown(f"### 🔹 Predicción del Indice de Dolor: **{pred_caso_trad}**")
-
+        st.markdown(f"### ☝️🤓  Predicción del Indice de Dolor: **{pred_caso_trad}**")
 
 
 
