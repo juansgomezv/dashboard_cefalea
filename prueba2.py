@@ -10,9 +10,14 @@ from sklearn.ensemble import RandomForestClassifier
 from imblearn.pipeline import Pipeline
 from imblearn.over_sampling import SMOTE
 from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score
+from sklearn.metrics import accuracy_score, confusion_matrix, balanced_accuracy_score, f1_score, silhouette_score
 from scipy.spatial import ConvexHull
 import plotly.graph_objects as go
+from openpyxl import Workbook
+from openpyxl.utils.dataframe import dataframe_to_rows
+from scipy.stats import chi2_contingency
+import io
+
 
 # ######################################################FUNCIONES DE TRADUCCIÓN##################################################################################
 def cargar_mapeo_valores(path):
@@ -167,6 +172,53 @@ with col_total:
 
 tab1, tab2 = st.tabs(["Agrupaciones", "Predicciones"])
 
+# ###################################################### TAB BOSQUE ALEATORIO ######################################################
+with tab2:
+    if rf_pipeline is not None:
+        col1, col2 = st.columns([3, 1])
+        with col1:
+            st.header("Crear un Caso Personalizado ✏️")
+        with col2:
+            st.markdown(
+                f"<p style='text-align: right; font-size:18px;'>Exactitud del modelo: <b>{exactitud_test:.1%}</b></p>",
+                unsafe_allow_html=True
+            )
+
+        st.subheader("Características más Relevantes ⬆️")
+
+        drop_vars = [
+            'InasistenciaDolor', 'IntensidadDolor', 'DuracionDolor', 'FrecuenciaDolor',
+            'Ruido/Luz', 'DoloresSueno', 'Nauseas', 'LugarDolor', 'Temor', 'DecaidoDeprimido'
+        ]
+
+        model_cols = X_train.columns.tolist()
+        caso_df = pd.DataFrame([{col: df_original[col].mode()[0] for col in model_cols}])
+
+        fila1_cols = st.columns(5)
+        fila2_cols = st.columns(5)
+
+        for i, var in enumerate(drop_vars):
+            valores_originales = df_original[var].unique()
+            traducciones = [traducir_valor_aproximado(var, v, mapeo_valores) for v in valores_originales]
+            valores_display = sorted(traducciones)
+
+            fila = fila1_cols[i] if i < 5 else fila2_cols[i - 5]
+            valor_inicial = traducir_valor_aproximado(var, caso_df[var].iloc[0], mapeo_valores)
+            seleccionado = fila.selectbox(
+                f"{nombre_columnas.get(var, var)}",
+                valores_display,
+                index=valores_display.index(valor_inicial)
+            )
+            for val_original, val_trad in zip(valores_originales, traducciones):
+                if val_trad == seleccionado:
+                    caso_df[var] = val_original
+                    break
+
+        pred_caso = rf_pipeline.predict(caso_df[model_cols])[0]
+        traduccion_dolor = {0: "Muy bajo", 1: "Bajo", 2: "Medio", 3: "Alto"}
+        pred_caso_trad = traduccion_dolor.get(pred_caso, pred_caso)
+        st.markdown(f"### ☝️🤓  Predicción del Indice de Dolor: **{pred_caso_trad}**")
+
 # ###################################################### TAB AGRUPACIONES ######################################################
 with tab1:
 
@@ -302,83 +354,6 @@ with tab1:
             ax_bar.set_title("Comparación entre grupos")
             st.pyplot(fig_bar)
 
-    # ----------------------- EXPORTAR RESUMEN GLOBAL DE TOP10 Y CLÍNICAS -----------------------
-    st.markdown("---")
-    st.subheader("📤 Exportar Resumen Global")
-
-    if st.button("Generar archivo Excel"):
-        try:
-            import io
-            from openpyxl import Workbook
-            from openpyxl.utils.dataframe import dataframe_to_rows
-
-            wb = Workbook()
-            ws1 = wb.active
-            ws1.title = "Top10_por_grupo"
-
-            # ------------------------ TABLA 1: TOP 10 CARACTERÍSTICAS ------------------------
-            filas_top10 = []
-
-            for g in sorted(tabla_medias.index):
-                sorted_vars = tabla_medias.loc[g].sort_values()
-                top_10 = sorted_vars.tail(10)
-
-                real_values = tabla_original.loc[g][top_10.index]
-                for var, val in real_values.items():
-                    val_trad = traducir_valor_aproximado(var, val, mapeo_valores)
-                    nombre_trad = nombre_columnas.get(var, var)
-
-                    filas_top10.append({
-                        "Característica": nombre_trad,
-                        "Grupo": f"Grupo {g+1}",
-                        "Valor real": val_trad
-                    })
-
-            import pandas as pd
-            df_top10 = pd.DataFrame(filas_top10)
-
-            for row in dataframe_to_rows(df_top10, index=False, header=True):
-                ws1.append(row)
-
-            # ------------------------ TABLA 2: VARIABLES CLÍNICAS ------------------------
-            ws2 = wb.create_sheet("Clinicas_por_grupo")
-
-            filas_clinicas = []
-
-            for g in sorted(tabla_original.index):
-                clinicas = tabla_original.loc[g][cefalea_vars_presentes]
-
-                for var, val in clinicas.items():
-                    val_trad = traducir_valor_aproximado(var, val, mapeo_valores)
-                    nombre_trad = nombre_columnas.get(var, var)
-
-                    filas_clinicas.append({
-                        "Variable clínica": nombre_trad,
-                        "Grupo": f"Grupo {g+1}",
-                        "Valor real": val_trad
-                    })
-
-            df_clinicas = pd.DataFrame(filas_clinicas)
-
-            for row in dataframe_to_rows(df_clinicas, index=False, header=True):
-                ws2.append(row)
-
-            output = io.BytesIO()
-            wb.save(output)
-            output.seek(0)
-
-            st.success("✅ Archivo generado correctamente ✅")
-            st.download_button(
-                label="⬇️ Descargar Resumen_Global.xlsx ⬇️",
-                data=output,
-                file_name="Resumen_Global.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-        except Exception as e:
-            st.error(f"Error al generar el archivo: {e}")
-
-
     # ----------------- PERFIL MULTIVARIABLE -----------------
     with col_radar:
         st.subheader("📈 Perfil Multivariante por grupo")
@@ -418,54 +393,179 @@ with tab1:
 
         st.plotly_chart(fig, use_container_width=True)
 
+    # ----------------------- EXPORTAR RESUMEN GLOBAL + EVALUACIÓN DE MODELOS -----------------------
+    st.markdown("---")
+    st.subheader("📤 Exportar Resumen Global y Evaluación del Modelo")
 
-# ###################################################### TAB BOSQUE ALEATORIO ######################################################
-with tab2:
-    if rf_pipeline is not None:
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.header("Crear un Caso Personalizado ✏️")
-        with col2:
-            st.markdown(
-                f"<p style='text-align: right; font-size:18px;'>Exactitud del modelo: <b>{exactitud_test:.1%}</b></p>",
-                unsafe_allow_html=True
+    if st.button("Generar archivo Excel (con evaluación incluida)"):
+        try:
+            wb = Workbook()
+
+            # ============== HOJA 1: TOP 10 POR GRUPO ==================================
+            ws1 = wb.active
+            ws1.title = "Top10_por_grupo"
+
+            filas_top10 = []
+            for g in sorted(tabla_medias.index):
+                sorted_vars = tabla_medias.loc[g].sort_values()
+                top_10 = sorted_vars.tail(10)
+
+                real_values = tabla_original.loc[g][top_10.index]
+                for var, val in real_values.items():
+                    val_trad = traducir_valor_aproximado(var, val, mapeo_valores)
+                    nombre_trad = nombre_columnas.get(var, var)
+
+                    filas_top10.append({
+                        "Característica": nombre_trad,
+                        "Grupo": f"Grupo {g+1}",
+                        "Valor real": val_trad
+                    })
+
+            df_top10 = pd.DataFrame(filas_top10)
+            for row in dataframe_to_rows(df_top10, index=False, header=True):
+                ws1.append(row)
+
+            # ============== HOJA 2: VARIABLES CLÍNICAS POR GRUPO ======================
+            ws2 = wb.create_sheet("Clinicas_por_grupo")
+
+            filas_clinicas = []
+            for g in sorted(tabla_original.index):
+                clinicas = tabla_original.loc[g][cefalea_vars_presentes]
+
+                for var, val in clinicas.items():
+                    val_trad = traducir_valor_aproximado(var, val, mapeo_valores)
+                    nombre_trad = nombre_columnas.get(var, var)
+
+                    filas_clinicas.append({
+                        "Variable clínica": nombre_trad,
+                        "Grupo": f"Grupo {g+1}",
+                        "Valor real": val_trad
+                    })
+
+            df_clinicas = pd.DataFrame(filas_clinicas)
+            for row in dataframe_to_rows(df_clinicas, index=False, header=True):
+                ws2.append(row)
+
+            # ============== HOJA 3: EVALUACIÓN DE MODELOS =============================
+            ws3 = wb.create_sheet("Evaluacion_Modelos")
+
+            # ------------ COSTE DE KMODES PARA K = 2 a 10 --------------------------
+            costes_k = {}
+            for k in range(2, 11):
+                km_temp = KModes(n_clusters=k, init="Huang", n_init=5, random_state=42)
+                km_temp.fit(X_kmodes)
+                costes_k[k] = km_temp.cost_
+
+            ws3.append(["Evaluación del algoritmo de Clustering - K-Modes"])
+            ws3.append([])
+            ws3.append(["Coste por número de clusters"])
+            ws3.append(["k", "Coste"])
+            for k, c in costes_k.items():
+                ws3.append([k, c])
+
+            ws3.append([])
+            ws3.append([])
+
+            # ------------ SILHOUETTE (Hamming) -------------------------------------
+            try:
+                silhouette = silhouette_score(X_kmodes.astype(str), cluster_labels, metric="hamming")
+            except:
+                silhouette = "No disponible"
+
+            ws3.append(["Silhouette Score (Hamming)", silhouette])
+            ws3.append([])
+            ws3.append([])
+
+            # ------------ ARI con 10 corridas --------------------------------------
+            from sklearn.metrics import adjusted_rand_score
+
+            ari_values = []
+            for i in range(10):
+                km_a = KModes(n_clusters=10, init="Huang", n_init=5, random_state=np.random.randint(0, 999999))
+                km_b = KModes(n_clusters=10, init="Huang", n_init=5, random_state=np.random.randint(0, 999999))
+
+                labs_a = km_a.fit_predict(X_kmodes)
+                labs_b = km_b.fit_predict(X_kmodes)
+
+                ari_values.append(adjusted_rand_score(labs_a, labs_b))
+
+            ari_promedio = np.mean(ari_values)
+
+            ws3.append(["ARI promedio (10 corridas)", ari_promedio])
+            ws3.append([])
+            ws3.append([])
+
+            # ------------ CHI-CUADRADO + CRAMER’S V --------------------------------
+            ws3.append(["Chi-cuadrado y Cramér’s V por variable"])
+            ws3.append(["Variable", "Chi2", "p-value", "Cramér’s V"])
+
+            def cramers_v(conf_mat):
+                chi2 = chi2_contingency(conf_mat)[0]
+                n = conf_mat.sum()
+                r, k = conf_mat.shape
+                return np.sqrt(chi2 / (n * (min(r, k) - 1)))
+
+            for var in df_original.columns:
+                if var not in ["grupo", "IndiceDolor", "PrediccionDolor", "PrediccionDolorCat"]:
+                    tabla = pd.crosstab(df_original[var], df_original["grupo"])
+                    if tabla.shape[0] > 1:
+                        chi2, p, _, _ = chi2_contingency(tabla)
+                        cv = cramers_v(tabla.values)
+                        nombre = nombre_columnas.get(var, var)
+                        ws3.append([nombre, chi2, p, cv])
+
+            ws3.append([])
+            ws3.append([])
+
+            # ============== SECCIÓN SUPERVISADO =======================================
+            ws3.append(["Evaluación del modelo Supervisado - Random Forest"])
+            ws3.append([])
+
+            # -------- Balanced accuracy / F1 macro -----------------------
+            y_pred_full = rf_pipeline.predict(X)
+            bal_acc = balanced_accuracy_score(y, y_pred_full)
+            f1_macro = f1_score(y, y_pred_full, average='macro')
+
+            ws3.append(["Balanced Accuracy", bal_acc])
+            ws3.append(["F1 Macro", f1_macro])
+            ws3.append([])
+            ws3.append([])
+
+            # -------- Matriz de confusión --------------------------------
+            cm = confusion_matrix(y, y_pred_full)
+            ws3.append(["Matriz de confusión"])
+            ws3.append([""] + [f"Pred {i}" for i in range(cm.shape[0])])
+
+            for i, fila in enumerate(cm):
+                ws3.append([f"Real {i}"] + list(fila))
+
+            ws3.append([])
+            ws3.append([])
+
+            # -------- Importancia de variables ----------------------------
+            ws3.append(["Importancia de Variables (Random Forest)"])
+            ws3.append(["Variable", "Importancia"])
+
+            importancias = rf_pipeline.named_steps["rf"].feature_importances_
+            for var, imp in sorted(zip(model_cols, importancias), key=lambda x: x[1], reverse=True):
+                nombre = nombre_columnas.get(var, var)
+                ws3.append([nombre, float(imp)])
+
+            # ============== EXPORTAR EXCEL ============================================
+            output = io.BytesIO()
+            wb.save(output)
+            output.seek(0)
+
+            st.success("✅ Archivo con evaluación generado correctamente")
+            st.download_button(
+                label="⬇️ Descargar Resumen_Modelos.xlsx",
+                data=output,
+                file_name="Resumen_Modelos.xlsx",
+                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
             )
 
-        st.subheader("Características más Relevantes ⬆️")
-
-        drop_vars = [
-            'InasistenciaDolor', 'IntensidadDolor', 'DuracionDolor', 'FrecuenciaDolor',
-            'Ruido/Luz', 'DoloresSueno', 'Nauseas', 'LugarDolor', 'Temor', 'DecaidoDeprimido'
-        ]
-
-        model_cols = X_train.columns.tolist()
-        caso_df = pd.DataFrame([{col: df_original[col].mode()[0] for col in model_cols}])
-
-        fila1_cols = st.columns(5)
-        fila2_cols = st.columns(5)
-
-        for i, var in enumerate(drop_vars):
-            valores_originales = df_original[var].unique()
-            traducciones = [traducir_valor_aproximado(var, v, mapeo_valores) for v in valores_originales]
-            valores_display = sorted(traducciones)
-
-            fila = fila1_cols[i] if i < 5 else fila2_cols[i - 5]
-            valor_inicial = traducir_valor_aproximado(var, caso_df[var].iloc[0], mapeo_valores)
-            seleccionado = fila.selectbox(
-                f"{nombre_columnas.get(var, var)}",
-                valores_display,
-                index=valores_display.index(valor_inicial)
-            )
-            for val_original, val_trad in zip(valores_originales, traducciones):
-                if val_trad == seleccionado:
-                    caso_df[var] = val_original
-                    break
-
-        pred_caso = rf_pipeline.predict(caso_df[model_cols])[0]
-        traduccion_dolor = {0: "Muy bajo", 1: "Bajo", 2: "Medio", 3: "Alto"}
-        pred_caso_trad = traduccion_dolor.get(pred_caso, pred_caso)
-        st.markdown(f"### ☝️🤓  Predicción del Indice de Dolor: **{pred_caso_trad}**")
-
+        except Exception as e:
+            st.error(f"Error al generar el archivo: {e}")
 
 
 
