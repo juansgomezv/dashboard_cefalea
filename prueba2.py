@@ -450,50 +450,46 @@ with tab1:
             ws3 = wb.create_sheet("Evaluacion_Modelos")
 
             # ------------ COSTE DE KMODES PARA K = 2 a 10 --------------------------
-            costes_k = {}
-            for k in range(2, 11):
-                km_temp = KModes(n_clusters=k, init="Huang", n_init=5, random_state=42)
-                km_temp.fit(X_kmodes)
-                costes_k[k] = km_temp.cost_
-
             ws3.append(["Evaluación del algoritmo de Clustering - K-Modes"])
             ws3.append([])
-            ws3.append(["Coste por número de clusters"])
-            ws3.append(["k", "Coste"])
-            for k, c in costes_k.items():
-                ws3.append([k, c])
 
-            ws3.append([])
-            ws3.append([])
+            ws3.append(["k", "Coste", "Silhouette (Hamming)", "ARI promedio (10 corridas)", "ARI SD"])
 
-            # ------------ SILHOUETTE (Hamming) -------------------------------------
-            try:
-                silhouette = silhouette_score(X_kmodes.astype(str), cluster_labels, metric="hamming")
-            except:
-                silhouette = "No disponible"
-
-            ws3.append(["Silhouette Score (Hamming)", silhouette])
-            ws3.append([])
-            ws3.append([])
-
-            # ------------ ARI con 10 corridas --------------------------------------
             from sklearn.metrics import adjusted_rand_score
 
-            ari_values = []
-            for i in range(10):
-                km_a = KModes(n_clusters=10, init="Huang", n_init=5, random_state=np.random.randint(0, 999999))
-                km_b = KModes(n_clusters=10, init="Huang", n_init=5, random_state=np.random.randint(0, 999999))
+            for k in range(2, 11):
 
-                labs_a = km_a.fit_predict(X_kmodes)
-                labs_b = km_b.fit_predict(X_kmodes)
+                # --- KModes con k clusters ---
+                km_temp = KModes(n_clusters=k, init="Huang", n_init=5, random_state=42)
+                labels = km_temp.fit_predict(X_kmodes)
+                coste_k = km_temp.cost_
 
-                ari_values.append(adjusted_rand_score(labs_a, labs_b))
+                # --- Silhouette ---
+                try:
+                    sil_k = silhouette_score(X_kmodes.astype(str), labels, metric="hamming")
+                except:
+                    sil_k = None
 
-            ari_promedio = np.mean(ari_values)
+                # --- ARI estabilidad ---
+                ari_list = []
+                for i in range(10):
+                    km_a = KModes(n_clusters=k, init="Huang", n_init=5,
+                                random_state=np.random.randint(0, 10_000))
+                    km_b = KModes(n_clusters=k, init="Huang", n_init=5,
+                                random_state=np.random.randint(0, 10_000))
+                    labs_a = km_a.fit_predict(X_kmodes)
+                    labs_b = km_b.fit_predict(X_kmodes)
+                    ari_list.append(adjusted_rand_score(labs_a, labs_b))
 
-            ws3.append(["ARI promedio (10 corridas)", ari_promedio])
+                ari_prom = float(np.mean(ari_list))
+                ari_std = float(np.std(ari_list))
+
+                # --- Escribir fila ---
+                ws3.append([k, coste_k, sil_k, ari_prom, ari_std])
+
             ws3.append([])
             ws3.append([])
+
 
             # ------------ CHI-CUADRADO + CRAMER’S V --------------------------------
             ws3.append(["Chi-cuadrado y Cramér’s V por variable"])
