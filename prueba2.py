@@ -108,42 +108,75 @@ for g in tabla_scores.index:
 
 tabla_medias = tabla_scores.astype(float)  
 
-# ######################################################BOSQUE ALEATORIO##########################################################################################
+# ######################################################BOSQUE ALEATORIO###############################################################
 if "IndiceDolor" in df_original.columns:
-    X = df_original.drop(columns=["IndiceDolor", "grupo"])
-    y = df_original["IndiceDolor"]
-    y = y.replace({4: 3})
 
+    # --- Separar variables ---
+    X = df_original.drop(columns=["IndiceDolor", "grupo"])
+    y = df_original["IndiceDolor"].replace({4: 3})
+
+    # --- Train/Test split ---
     X_train, X_test, y_train, y_test = train_test_split(
         X, y, test_size=0.2, stratify=y, random_state=42
     )
 
-    smote_strategy = {3: y_train.value_counts().max()}
+    # --- Aplicar SMOTE SOLO AL ENTRENAMIENTO ---
+    sm = SMOTE(sampling_strategy={3: y_train.value_counts().max()}, random_state=42)
+    X_train_sm, y_train_sm = sm.fit_resample(X_train, y_train)
 
-    rf_pipeline = Pipeline([
-        ("smote", SMOTE(sampling_strategy=smote_strategy, random_state=42)),
-        ("rf", RandomForestClassifier(
-            n_estimators=200,
-            max_depth=10,
-            min_samples_split=2,
-            min_samples_leaf=2,
-            class_weight="balanced",
-            random_state=42,
-            n_jobs=-1
-        ))
-    ])
+    # --- Entrenar modelo ---
+    rf = RandomForestClassifier(
+        n_estimators=200,
+        max_depth=10,
+        min_samples_split=2,
+        min_samples_leaf=2,
+        class_weight="balanced",
+        random_state=42,
+        n_jobs=-1
+    )
+    rf.fit(X_train_sm, y_train_sm)
 
-    rf_pipeline.fit(X_train, y_train)
-    predicciones_test = rf_pipeline.predict(X_test)
-    df_original.loc[X_test.index, "PrediccionDolor"] = predicciones_test
-    predicciones_full = rf_pipeline.predict(X)
-    df_original["PrediccionDolor"] = predicciones_full
+    # --- Predicción sobre TEST ---
+    y_pred_test = rf.predict(X_test)
 
-    traduccion_dolor = {0: "Muy bajo", 1: "Bajo", 2: "Medio", 3: "Alto"}
-    df_original["PrediccionDolorCat"] = df_original["PrediccionDolor"].map(traduccion_dolor)
-    exactitud_test = accuracy_score(y_test, predicciones_test)
+    # --- Predicción sobre TRAIN ORIGINAL (sin SMOTE) ---
+    y_pred_train = rf.predict(X_train)
+
+    # Guardar predicciones en df_original
+    df_original.loc[X_test.index, "PrediccionDolor"] = y_pred_test
+    df_original.loc[X_train.index, "PrediccionDolor"] = y_pred_train
+
+    # --- Métricas de entrenamiento ---
+    train_bal_acc = balanced_accuracy_score(y_train, y_pred_train)
+    train_f1 = f1_score(y_train, y_pred_train, average='macro')
+    train_acc = accuracy_score(y_train, y_pred_train)
+    cm_train = confusion_matrix(y_train, y_pred_train)
+
+    # --- Métricas de test ---
+    test_bal_acc = balanced_accuracy_score(y_test, y_pred_test)
+    test_f1 = f1_score(y_test, y_pred_test, average='macro')
+    test_acc = accuracy_score(y_test, y_pred_test)
+    cm_test = confusion_matrix(y_test, y_pred_test)
+
+    # --- Cálculo de precisión y recall por clase ---
+    def precision_recall_from_cm(cm):
+        precisiones = []
+        recalls = []
+        for i in range(len(cm)):
+            tp = cm[i, i]
+            fp = cm[:, i].sum() - tp
+            fn = cm[i, :].sum() - tp
+            prec = tp / (tp + fp) if (tp + fp) > 0 else 0
+            rec = tp / (tp + fn) if (tp + fn) > 0 else 0
+            precisiones.append(prec)
+            recalls.append(rec)
+        return precisiones, recalls
+
+    prec_train, rec_train = precision_recall_from_cm(cm_train)
+    prec_test, rec_test = precision_recall_from_cm(cm_test)
+
 else:
-    rf_pipeline = None
+    rf = None
 
 # ######################################################UMAP SOLO PARA VISUALIZACIÓN ########################################################
 try:
@@ -174,13 +207,13 @@ tab1, tab2 = st.tabs(["Agrupaciones", "Predicciones"])
 
 # ###################################################### TAB BOSQUE ALEATORIO ######################################################
 with tab2:
-    if rf_pipeline is not None:
+    if rf is not None:
         col1, col2 = st.columns([3, 1])
         with col1:
             st.header("Crear un Caso Personalizado ✏️")
         with col2:
             st.markdown(
-                f"<p style='text-align: right; font-size:18px;'>Exactitud del modelo: <b>{exactitud_test:.1%}</b></p>",
+                f"<p style='text-align: right; font-size:18px;'>Exactitud del modelo: <b>{test_acc:.1%}</b></p>",
                 unsafe_allow_html=True
             )
 
@@ -214,7 +247,7 @@ with tab2:
                     caso_df[var] = val_original
                     break
 
-        pred_caso = rf_pipeline.predict(caso_df[model_cols])[0]
+        pred_caso = rf.predict(caso_df[model_cols])[0]
         traduccion_dolor = {0: "Muy bajo", 1: "Bajo", 2: "Medio", 3: "Alto"}
         pred_caso_trad = traduccion_dolor.get(pred_caso, pred_caso)
         st.markdown(f"### ☝️🤓  Predicción del Indice de Dolor: **{pred_caso_trad}**")
@@ -517,32 +550,110 @@ with tab1:
             ws3.append(["Evaluación del modelo Supervisado - Random Forest"])
             ws3.append([])
 
-            # -------- Balanced accuracy / F1 macro -----------------------
-            y_pred_full = rf_pipeline.predict(X)
-            bal_acc = balanced_accuracy_score(y, y_pred_full)
-            f1_macro = f1_score(y, y_pred_full, average='macro')
+            # =============================== ENTRENAMIENTO ===============================
+            ws3.append(["Métricas en ENTRENAMIENTO"])
+            y_train_pred = rf.predict(X_train)
 
-            ws3.append(["Balanced Accuracy", bal_acc])
-            ws3.append(["F1 Macro", f1_macro])
+            # Balanced accuracy - train
+            bal_acc_train = balanced_accuracy_score(y_train, y_train_pred)
+            # F1 Macro - train
+            f1_macro_train = f1_score(y_train, y_train_pred, average='macro')
+            # Accuracy - train
+            acc_train = accuracy_score(y_train, y_train_pred)
+
+            ws3.append(["Balanced Accuracy (train)", bal_acc_train])
+            ws3.append(["F1 Macro (train)", f1_macro_train])
+            ws3.append(["Exactitud (train)", acc_train])
             ws3.append([])
-            ws3.append([])
 
-            # -------- Matriz de confusión --------------------------------
-            cm = confusion_matrix(y, y_pred_full)
-            ws3.append(["Matriz de confusión"])
-            ws3.append([""] + [f"Pred {i}" for i in range(cm.shape[0])])
-
-            for i, fila in enumerate(cm):
+            # Matriz de confusión - train
+            cm_train = confusion_matrix(y_train, y_train_pred)
+            ws3.append(["Matriz de confusión (train)"])
+            ws3.append([""] + [f"Pred {i}" for i in range(cm_train.shape[0])])
+            for i, fila in enumerate(cm_train):
                 ws3.append([f"Real {i}"] + list(fila))
 
+            # Calcular precisión y recall por clase
+            ws3.append([])
+            ws3.append(["Precisión y Recall por clase (train)"])
+            ws3.append(["Clase", "Precisión", "Recall"])
+
+            precision_train_list = []
+            recall_train_list = []
+
+            for clase in range(cm_train.shape[0]):
+                TP = cm_train[clase, clase]
+                FP = cm_train[:, clase].sum() - TP
+                FN = cm_train[clase, :].sum() - TP
+
+                precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+                recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+
+                precision_train_list.append(precision)
+                recall_train_list.append(recall)
+
+                ws3.append([clase, precision, recall])
+
+            ws3.append(["Precision macro (train)", np.mean(precision_train_list)])
+            ws3.append(["Recall macro (train)", np.mean(recall_train_list)])
+            ws3.append([])
+
+
+            # =============================== TEST =======================================
+            ws3.append([])
+            ws3.append(["Métricas en TEST"])
+            y_test_pred = rf.predict(X_test)
+
+            # Balanced accuracy - test
+            bal_acc_test = balanced_accuracy_score(y_test, y_test_pred)
+            # F1 Macro - test
+            f1_macro_test = f1_score(y_test, y_test_pred, average='macro')
+            # Accuracy - test
+            acc_test = accuracy_score(y_test, y_test_pred)
+
+            ws3.append(["Balanced Accuracy (test)", bal_acc_test])
+            ws3.append(["F1 Macro (test)", f1_macro_test])
+            ws3.append(["Exactitud (test)", acc_test])
+            ws3.append([])
+
+            # Matriz de confusión - test
+            cm_test = confusion_matrix(y_test, y_test_pred)
+            ws3.append(["Matriz de confusión (test)"])
+            ws3.append([""] + [f"Pred {i}" for i in range(cm_test.shape[0])])
+            for i, fila in enumerate(cm_test):
+                ws3.append([f"Real {i}"] + list(fila))
+
+            # Precisión y recall por clase (test)
+            ws3.append([])
+            ws3.append(["Precisión y Recall por clase (test)"])
+            ws3.append(["Clase", "Precisión", "Recall"])
+
+            precision_test_list = []
+            recall_test_list = []
+
+            for clase in range(cm_test.shape[0]):
+                TP = cm_test[clase, clase]
+                FP = cm_test[:, clase].sum() - TP
+                FN = cm_test[clase, :].sum() - TP
+
+                precision = TP / (TP + FP) if (TP + FP) > 0 else 0
+                recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+
+                precision_test_list.append(precision)
+                recall_test_list.append(recall)
+
+                ws3.append([clase, precision, recall])
+
+            ws3.append(["Precision macro (test)", np.mean(precision_test_list)])
+            ws3.append(["Recall macro (test)", np.mean(recall_test_list)])
             ws3.append([])
             ws3.append([])
 
-            # -------- Importancia de variables ----------------------------
+            # =============================== IMPORTANCIA DE VARIABLES ====================
             ws3.append(["Importancia de Variables (Random Forest)"])
             ws3.append(["Variable", "Importancia"])
 
-            importancias = rf_pipeline.named_steps["rf"].feature_importances_
+            importancias = rf.feature_importances_
             for var, imp in sorted(zip(model_cols, importancias), key=lambda x: x[1], reverse=True):
                 nombre = nombre_columnas.get(var, var)
                 ws3.append([nombre, float(imp)])
