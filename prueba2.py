@@ -1,33 +1,31 @@
-# IMPORTS
+# ======================================================
+# DASHBOARD DE CEFALEA - STREAMLIT
+# ======================================================
 import pandas as pd
 import numpy as np
+import streamlit as st
 import matplotlib.pyplot as plt
 import seaborn as sns
-from kmodes.kmodes import KModes
 import umap.umap_ as umap
-import streamlit as st
-from sklearn.ensemble import RandomForestClassifier
-from imblearn.pipeline import Pipeline
-from imblearn.over_sampling import SMOTE
-from sklearn.model_selection import train_test_split
-from sklearn.metrics import accuracy_score, confusion_matrix, balanced_accuracy_score, f1_score, silhouette_score
-from scipy.spatial import ConvexHull
-import plotly.graph_objects as go
+import joblib
+import io
+import warnings
 from openpyxl import Workbook
 from openpyxl.utils.dataframe import dataframe_to_rows
-from scipy.stats import chi2_contingency
-import io
+import plotly.graph_objects as go
 
 
-# ######################################################FUNCIONES DE TRADUCCIÓN##################################################################################
+# ======================================================
+# FUNCIONES DE TRADUCCIÓN (uso de keys en minúscula)
+# ======================================================
 def cargar_mapeo_valores(path):
     try:
         df = pd.read_csv(path, encoding="ISO-8859-1")
-        df.columns = df.columns.str.lower()
+        df.columns = df.columns.str.lower().str.strip()
         mapeo = {}
         for columna in df["columna"].unique():
             sub = df[df["columna"] == columna]
-            mapeo[columna] = list(zip(sub["valor"], sub["traduccion"]))
+            mapeo[columna.lower()] = list(zip(sub["valor"], sub["traduccion"]))
         return mapeo
     except Exception as e:
         st.warning(f"No se pudo cargar 'valores.csv'. Error: {e}")
@@ -36,68 +34,130 @@ def cargar_mapeo_valores(path):
 def cargar_nombres_columnas(path):
     try:
         df = pd.read_csv(path, encoding="ISO-8859-1")
-        df.columns = df.columns.str.lower()
-        return dict(zip(df["columna"], df["nombre_amigable"]))
+        df.columns = df.columns.str.lower().str.strip()
+        # guardamos keys en minúscula
+        return {k.lower(): v for k, v in zip(df["columna"], df["nombre_amigable"])}
     except Exception as e:
         st.warning(f"No se pudo cargar 'columnas.csv'. Error: {e}")
         return {}
 
 def traducir_valor_aproximado(col, val, mapeo_dict):
-    if col not in mapeo_dict:
+    """
+    Busca mapeo en minúscula (col puede venir en cualquier case).
+    Si no existe mapeo, devuelve val.
+    """
+    key = str(col).lower()
+    if key not in mapeo_dict:
         return val
     try:
-        val = float(val)
-        valores = np.array([v[0] for v in mapeo_dict[col]])
-        idx = (np.abs(valores - val)).argmin()
-        return mapeo_dict[col][idx][1]
-    except:
+        # algunos valores ya son strings no numéricos; convertimos cuando sea posible
+        val_num = float(val)
+        valores = np.array([float(v[0]) for v in mapeo_dict[key]])
+        idx = (np.abs(valores - val_num)).argmin()
+        return mapeo_dict[key][idx][1]
+    except Exception:
+        # fallback: intenta buscar exact match como string
+        for orig, trad in mapeo_dict[key]:
+            if str(orig) == str(val):
+                return trad
         return val
 
-# ######################################################CARGAR MAPEOS DE VALORES############################################################################################
+# ======================================================
+# CARGAR MAPEOS Y DATOS
+# ======================================================
 mapeo_valores = cargar_mapeo_valores("valores.csv")
 nombre_columnas = cargar_nombres_columnas("columnas.csv")
 
-# ######################################################CARGAR Y PREPARAR DATOS##################################################################################
-df = pd.read_csv("DatasetV5.csv", index_col=0)
+df = pd.read_csv("DatasetV5.csv")
+# limpiar espacios y saltos de línea en nombres de columnas
+df.columns = df.columns.str.strip()
 
-threshold = 0.85
-columnas_importantes = [
+# Cargar modelos (se asume que existen)
+rf_model = joblib.load("modelo_rf.joblib")
+km_model = joblib.load("modelo_kmodes.joblib")
+
+df_original = df.copy()
+
+# variables clínicas fijas (mantener mayúsculas tal como aparecen en df)
+cefalea_vars_presentes = [
     "AntecedentesFamiliares", "LugarDolor", "IntensidadDolor", "DuracionDolor",
     "FrecuenciaDolor", "ActividadFisica", "InasistenciaDolor", "IndiceDolor"
 ]
 
-cols_to_drop_zeros = (df == 0).sum() / len(df) > threshold
-cols_to_drop_const = df.nunique() == 1
-cols_to_drop = df.columns[(cols_to_drop_zeros | cols_to_drop_const) & ~df.columns.isin(columnas_importantes)]
-df = df.drop(columns=cols_to_drop)
+# ======================================================
+# PREDICCIONES CON KMODES (usar columnas guardadas en el modelo si existen)
+# ======================================================
+X_kmodes = df_original.copy().astype(str)
 
-cefalea_vars_presentes = [v for v in columnas_importantes if v in df.columns]
-df = df[~(df[cefalea_vars_presentes] == 0).all(axis=1)]
+if hasattr(km_model, "columns_"):
+    # km_model.columns_ debería ser lista de nombres en el mismo formato que df
+    for col in km_model.columns_:
+        if col not in X_kmodes.columns:
+            X_kmodes[col] = "0"
+    # reordenar a las columnas del modelo (siempre que existan)
+    X_kmodes = X_kmodes[km_model.columns_]
 
-df_original = df.copy()
-df_weighted = df.copy()
-df_weighted[cefalea_vars_presentes] *= 1  
+cluster_labels = km_model.predict(X_kmodes)
+df_original["grupo"] = cluster_labels.astype(int)
 
-df = df.reset_index(drop=True)
-df_weighted = df_weighted.reset_index(drop=True)
-df_original = df_original.reset_index(drop=True)
+# ======================================================
+# PREDICCIONES CON RANDOM FOREST (NO entrenar, solo usar .joblib)
+# ======================================================
+if "IndiceDolor" in df_original.columns:
+    X_rf = df_original.drop(columns=["IndiceDolor", "grupo"])
+    y_rf = df_original["IndiceDolor"]
 
-# ######################################################CLUSTERING CON K-MODES ##################################################################################
-X_kmodes = df_original.copy()  
+    # Añadir columnas faltantes que el RF espera
+    missing_cols_rf = [c for c in rf_model.feature_names_in_ if c not in X_rf.columns]
+    for col in missing_cols_rf:
+        X_rf[col] = 0
 
-km = KModes(
-    n_clusters=10,     
-    init="Huang",      
-    n_init=10,         
-    random_state=42
-)
+    X_rf_model = X_rf[rf_model.feature_names_in_].copy()
+    y_pred = rf_model.predict(X_rf_model)
+else:
+    X_rf_model = pd.DataFrame()  # placeholder para evitar errores posteriores
 
-cluster_labels = km.fit_predict(X_kmodes)
-df_original["grupo"] = cluster_labels
+importancia = pd.DataFrame({
+    "variable": rf_model.feature_names_in_,
+    "importancia": rf_model.feature_importances_
+})
 
+importancia = importancia.sort_values("importancia", ascending=False)
+
+importancia["nombre_trad"] = importancia["variable"].str.lower().map(nombre_columnas).fillna(importancia["variable"])
+
+importancia["acumulado"] = importancia["importancia"].cumsum()
+
+vars_recomendadas = importancia[importancia["acumulado"] <= 0.70]["variable"].tolist()
+
+if len(vars_recomendadas) < 8:
+    vars_recomendadas = importancia["variable"].head(10).tolist()
+
+# ======================================================
+# UMAP PARA VISUALIZACIÓN (entrada numérica segura)
+# ======================================================
+try:
+    umap_reducer_vis = umap.UMAP(n_neighbors=15, min_dist=0.1, metric="hamming", random_state=42)
+    # Convertir a numérico donde sea posible; NaNs -> 0
+    X_umap_safe = X_rf_model.apply(pd.to_numeric, errors="coerce").fillna(0).astype(int).values
+    X_umap_vis = umap_reducer_vis.fit_transform(X_umap_safe)
+    df_umap_vis = pd.DataFrame(X_umap_vis, columns=["x", "y"])
+    df_umap_vis["grupo"] = df_original["grupo"].values
+except Exception as e:
+    print("UMAP visual falló:", e)
+    df_umap_vis = pd.DataFrame(columns=["x", "y", "grupo"])
+
+# ======================================================
+# CREAR TABLAS DE RESUMEN
+# ======================================================
+# tabla_original: moda por grupo (valores reales)
 tabla_original = df_original.groupby("grupo").agg(lambda x: x.mode().iloc[0])
-tabla_scores = pd.DataFrame(index=sorted(df_original["grupo"].unique()), 
-                            columns=[c for c in df_original.columns if c not in ["grupo", "IndiceDolor", "PrediccionDolor", "PrediccionDolorCat"]])
+
+# tabla_scores: para cada grupo y variable, proporción de la moda (0..1)
+tabla_scores = pd.DataFrame(
+    index=sorted(df_original["grupo"].unique()),
+    columns=[c for c in df_original.columns if c not in ["grupo", "IndiceDolor"]]
+)
 
 for g in tabla_scores.index:
     subset = df_original[df_original["grupo"] == g]
@@ -106,573 +166,382 @@ for g in tabla_scores.index:
         proportion = (subset[col] == mode_val).mean()
         tabla_scores.loc[g, col] = proportion
 
-tabla_medias = tabla_scores.astype(float)  
+tabla_medias = tabla_scores.astype(float)
 
-# ######################################################BOSQUE ALEATORIO###############################################################
-if "IndiceDolor" in df_original.columns:
+# ======= Determinar Top-10 variables más distintivas globalmente =======
+# usamos la dispersión entre grupos de las proporciones (max-min)
+diferencia_variables = tabla_medias.apply(lambda col: col.max() - col.min(), axis=0)
+top10_vars = diferencia_variables.nlargest(10).index.tolist()
 
-    # --- Separar variables ---
-    X = df_original.drop(columns=["IndiceDolor", "grupo"])
-    y = df_original["IndiceDolor"].replace({4: 3})
+# Preparar dataframes reproducibles para UI y export
+# df_top10_per_group: para cada grupo lista de top10 vars con su valor real (traducido)
+df_top10_per_group_rows = []
+for g in sorted(tabla_medias.index):
+    for var in top10_vars:
+        raw_val = tabla_original.loc[g, var]
+        val_trad = traducir_valor_aproximado(var, raw_val, mapeo_valores)
+        df_top10_per_group_rows.append({
+            "Grupo": f"Grupo {g+1}",
+            "Característica": nombre_columnas.get(var.lower(), var),
+            "Variable": var,
+            "Valor real": val_trad
+        })
+df_top10_per_group = pd.DataFrame(df_top10_per_group_rows)
 
-    # --- Train/Test split ---
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, stratify=y, random_state=42
-    )
-
-    # --- Aplicar SMOTE SOLO AL ENTRENAMIENTO ---
-    sm = SMOTE(sampling_strategy={3: y_train.value_counts().max()}, random_state=42)
-    X_train_sm, y_train_sm = sm.fit_resample(X_train, y_train)
-
-    # --- Entrenar modelo ---
-    rf = RandomForestClassifier(
-        n_estimators=200,
-        max_depth=10,
-        min_samples_split=2,
-        min_samples_leaf=2,
-        class_weight="balanced",
-        random_state=42,
-        n_jobs=-1
-    )
-    rf.fit(X_train_sm, y_train_sm)
-
-    # --- Predicción sobre TEST ---
-    y_pred_test = rf.predict(X_test)
-
-    # --- Predicción sobre TRAIN ORIGINAL (sin SMOTE) ---
-    y_pred_train = rf.predict(X_train)
-
-    # Guardar predicciones en df_original
-    df_original.loc[X_test.index, "PrediccionDolor"] = y_pred_test
-    df_original.loc[X_train.index, "PrediccionDolor"] = y_pred_train
-
-    # --- Métricas de entrenamiento ---
-    train_bal_acc = balanced_accuracy_score(y_train, y_pred_train)
-    train_f1 = f1_score(y_train, y_pred_train, average='macro')
-    train_acc = accuracy_score(y_train, y_pred_train)
-    cm_train = confusion_matrix(y_train, y_pred_train)
-
-    # --- Métricas de test ---
-    test_bal_acc = balanced_accuracy_score(y_test, y_pred_test)
-    test_f1 = f1_score(y_test, y_pred_test, average='macro')
-    test_acc = accuracy_score(y_test, y_pred_test)
-    cm_test = confusion_matrix(y_test, y_pred_test)
-
-    # --- Cálculo de precisión y recall por clase ---
-    def precision_recall_from_cm(cm):
-        precisiones = []
-        recalls = []
-        for i in range(len(cm)):
-            tp = cm[i, i]
-            fp = cm[:, i].sum() - tp
-            fn = cm[i, :].sum() - tp
-            prec = tp / (tp + fp) if (tp + fp) > 0 else 0
-            rec = tp / (tp + fn) if (tp + fn) > 0 else 0
-            precisiones.append(prec)
-            recalls.append(rec)
-        return precisiones, recalls
-
-    prec_train, rec_train = precision_recall_from_cm(cm_train)
-    prec_test, rec_test = precision_recall_from_cm(cm_test)
-
-else:
-    rf = None
-
-# ######################################################UMAP SOLO PARA VISUALIZACIÓN ########################################################
-try:
-    umap_reducer_vis = umap.UMAP(n_neighbors=15, min_dist=0.1, metric="hamming", random_state=42)
-    X_for_umap = X.astype(int).values 
-    X_umap_vis = umap_reducer_vis.fit_transform(X_for_umap)
-    df_umap_vis = pd.DataFrame(X_umap_vis, columns=["x", "y"])
-    df_umap_vis["grupo"] = df_original["grupo"].values
-except Exception as e:
-    print("UMAP visual falló:", e)
-    df_umap_vis = pd.DataFrame(columns=["x", "y", "grupo"])
-
-# ######################################################ESTADISTICAS GENERALES####################################################################################
-total_estudiantes = len(df_original)
-estudiantes_clasificados = np.sum(df_original["grupo"].notna())
-n_clusters = len(np.unique(df_original["grupo"]))
-
-# ######################################################STREAMLIT#################################################################################################
+# ======================================================
+# DASHBOARD STREAMLIT
+# ======================================================
 st.set_page_config(page_title="Dashboard", layout="wide")
-
 col_title, col_total = st.columns([3, 1])
 with col_title:
     st.title("CEFALEA EN LOS ESTUDIANTES UPB BUCARAMANGA")
 with col_total:
-    st.metric("👥 Total estudiantes encuestados", total_estudiantes)
+    st.metric("👥 Total estudiantes encuestados", len(df_original))
 
 tab1, tab2 = st.tabs(["Agrupaciones", "Predicciones"])
 
-# ###################################################### TAB BOSQUE ALEATORIO ######################################################
+# ---------------------- TAB PREDICCIONES ----------------------
 with tab2:
-    if rf is not None:
-        col1, col2 = st.columns([3, 1])
-        with col1:
-            st.header("Crear un Caso Personalizado ✏️")
-        with col2:
-            st.markdown(
-                f"<p style='text-align: right; font-size:18px;'>Exactitud del modelo: <b>{test_acc:.1%}</b></p>",
-                unsafe_allow_html=True
-            )
 
-        st.subheader("Características más Relevantes ⬆️")
+    st.write("Completa los campos para predecir el nivel de dolor de un estudiante con ese perfil.")
+    st.subheader("Variables más influyentes necesarias para la predicción")
 
-        drop_vars = [
-            'InasistenciaDolor', 'IntensidadDolor', 'DuracionDolor', 'FrecuenciaDolor',
-            'Ruido/Luz', 'DoloresSueno', 'Nauseas', 'LugarDolor', 'Temor', 'DecaidoDeprimido'
-        ]
+    vars_prediccion = vars_recomendadas
+    cols_modelo = list(rf_model.feature_names_in_)
+    caso = {}
 
-        model_cols = X_train.columns.tolist()
-        caso_df = pd.DataFrame([{col: df_original[col].mode()[0] for col in model_cols}])
+    # === Crear matriz 5 columnas ===
+    n_cols = 5
+    chunks = [vars_prediccion[i:i+n_cols] for i in range(0, len(vars_prediccion), n_cols)]
 
-        fila1_cols = st.columns(5)
-        fila2_cols = st.columns(5)
+    for fila in chunks:
+        cols = st.columns(n_cols)
+        for idx, col in enumerate(fila):
+            with cols[idx]:
+                col_lower = col.lower()
 
-        for i, var in enumerate(drop_vars):
-            valores_originales = df_original[var].unique()
-            traducciones = [traducir_valor_aproximado(var, v, mapeo_valores) for v in valores_originales]
-            valores_display = sorted(traducciones)
+                # Si existe en el mapeo → Selectbox con traducciones
+                if col_lower in mapeo_valores:
+                    opciones_trad = [t for _, t in mapeo_valores[col_lower]]
 
-            fila = fila1_cols[i] if i < 5 else fila2_cols[i - 5]
-            valor_inicial = traducir_valor_aproximado(var, caso_df[var].iloc[0], mapeo_valores)
-            seleccionado = fila.selectbox(
-                f"{nombre_columnas.get(var, var)}",
-                valores_display,
-                index=valores_display.index(valor_inicial)
-            )
-            for val_original, val_trad in zip(valores_originales, traducciones):
-                if val_trad == seleccionado:
-                    caso_df[var] = val_original
-                    break
+                    seleccion = st.selectbox(
+                        f"{nombre_columnas.get(col_lower, col)}",
+                        opciones_trad,
+                        key=f"pred_{col}"
+                    )
 
-        pred_caso = rf.predict(caso_df[model_cols])[0]
-        traduccion_dolor = {0: "Muy bajo", 1: "Bajo", 2: "Medio", 3: "Alto"}
-        pred_caso_trad = traduccion_dolor.get(pred_caso, pred_caso)
-        st.markdown(f"### ☝️🤓  Predicción del Indice de Dolor: **{pred_caso_trad}**")
+                    # Buscar valor numérico
+                    valor_numerico = None
+                    for valor, traduccion in mapeo_valores[col_lower]:
+                        if traduccion == seleccion:
+                            valor_numerico = valor
+                            break
 
-# ###################################################### TAB AGRUPACIONES ######################################################
+                    caso[col] = valor_numerico if valor_numerico is not None else 0
+
+                else:
+                    # Columna numérica → pedir número
+                    caso[col] = st.number_input(
+                        f"{nombre_columnas.get(col_lower, col)}",
+                        min_value=0,
+                        step=1,
+                        key=f"pred_{col}"
+                    )
+
+    # === Completar valores faltantes usando la moda del dataset ===
+    caso_completo = {}
+    for col in cols_modelo:
+        if col in vars_prediccion:
+            caso_completo[col] = caso[col]
+        else:
+            caso_completo[col] = df_original[col].mode()[0]
+
+    # Crear DataFrame en el orden del modelo
+    caso_df = pd.DataFrame([caso_completo])[cols_modelo]
+
+    # === Botón de predicción ===
+    if st.button("🔍 Predecir Índice de Dolor"):
+        pred = rf_model.predict(caso_df)[0]
+
+        traduccion_nivel = {
+            0: "Muy Bajo",
+            1: "Bajo",
+            2: "Medio",
+            3: "Alto"
+        }
+
+        st.success(f"**Nivel de Dolor Predicho:** {traduccion_nivel.get(pred, pred)}")
+
+
+# ---------------------- TAB AGRUPACIONES ----------------------
 with tab1:
+    st.subheader("Agrupaciones de estudiantes")
 
-    col_umap, col_tab1, col_tab2 = st.columns([1.2, 1, 1])
+    # Dropdown para seleccionar grupo (asegurar existencia)
+    if df_umap_vis.empty:
+        grupos_disponibles = sorted(df_original["grupo"].unique())
+    else:
+        grupos_disponibles = sorted(df_umap_vis["grupo"].unique())
 
+    opciones_groups = [f"Grupo {g+1}" for g in grupos_disponibles]
+    grupo_seleccionado = st.selectbox("Selecciona un grupo a visualizar", opciones_groups)
+    grupo_id = int(grupo_seleccionado.split(" ")[1]) - 1
+
+    # ---------------- FILA 1: UMAP 30% | Tabla1 35% | Tabla2 35% ----------------
+    col_umap, col_tab1, col_tab2 = st.columns([3, 3.5, 3.5])
+
+    # --- Grafico UMAP (solo grupo seleccionado coloreado) ---
     with col_umap:
         if df_umap_vis.empty:
-            st.info("Visualización UMAP no disponible.")
-            cluster_id = None
+            st.info("Visualización UMAP no disponible")
         else:
-            unique_clusters = sorted(df_umap_vis["grupo"].unique())
-            opciones_clusters = {f"Grupo {g+1}": g for g in unique_clusters}
+            fig, ax = plt.subplots(figsize=(3.5, 3.5))
+            palette = sns.color_palette("tab10", n_colors=max(3, len(grupos_disponibles)))
+            cluster_to_color = {g: palette[i % len(palette)] for i, g in enumerate(grupos_disponibles)}
 
-            col_drop, col_info = st.columns([1, 1])
+            for g in grupos_disponibles:
+                data = df_umap_vis[df_umap_vis["grupo"] == g]
+                color = cluster_to_color[g] if g == grupo_id else "#D3D3D3"
+                alpha = 0.9 if g == grupo_id else 0.2
+                ax.scatter(data["x"], data["y"], s=30, c=[color], alpha=alpha)
 
-            with col_drop:
-                cluster_seleccionado = st.selectbox("", list(opciones_clusters.keys()))
-                cluster_id = opciones_clusters[cluster_seleccionado]
+            ax.set_xticks([])
+            ax.set_yticks([])
+            st.pyplot(fig)
 
-            with col_info:
-                n_estudiantes_grupo = len(df_original[df_original["grupo"] == cluster_id])
-                st.markdown(
-                    f"<div style='text-align:center; line-height:1;'>"
-                    f"<span style='font-size:36px; font-weight:bold;'>{n_estudiantes_grupo}</span><br>"
-                    f"<span style='font-size:16px; color:gray;'>estudiantes</span>"
-                    f"</div>",
-                    unsafe_allow_html=True
-                )
-
-            fig_umap, ax_umap = plt.subplots(figsize=(4.5, 3.5))
-            palette = sns.color_palette("tab10", n_colors=max(3, len(unique_clusters)))
-            cluster_to_color = {cid: palette[i % len(palette)] for i, cid in enumerate(unique_clusters)}
-
-            for cid in unique_clusters:
-                cluster_data = df_umap_vis[df_umap_vis["grupo"] == cid]
-                color = cluster_to_color[cid] if cid == cluster_id else "#D3D3D3"
-                alpha = 0.9 if cid == cluster_id else 0.25
-                ax_umap.scatter(cluster_data["x"], cluster_data["y"], s=40, c=[color], alpha=alpha)
-
-                if cid == cluster_id and len(cluster_data) >= 3:
-                    hull = ConvexHull(cluster_data[["x", "y"]].values)
-                    hull_points = cluster_data.iloc[hull.vertices][["x", "y"]].values
-                    ax_umap.plot(
-                        np.append(hull_points[:, 0], hull_points[0, 0]),
-                        np.append(hull_points[:, 1], hull_points[0, 1]),
-                        c=color, linewidth=1.5
-                    )
-                    ax_umap.fill(hull_points[:, 0], hull_points[:, 1], color=color, alpha=0.20)
-
-            ax_umap.set_xticks([]); ax_umap.set_yticks([])
-            st.pyplot(fig_umap)
-
-    # ----------------- COLUMNA 2 (Tabla 1) -----------------
+    # --- Tabla1: Top 10 características más distintivas del grupo seleccionado ---
     with col_tab1:
-        st.subheader("🔹 Top 10 características")
-        if (cluster_id is None) or (cluster_id not in tabla_medias.index):
-            st.info("Selecciona un grupo válido.")
-        else:
-            sorted_vars = tabla_medias.loc[cluster_id].sort_values()
-            top_10 = sorted_vars.tail(10)
-            real_values_combined = tabla_original.loc[cluster_id][top_10.index]
-            tabla_real_mostrar = real_values_combined.copy()
-            for col in tabla_real_mostrar.index:
-                tabla_real_mostrar[col] = traducir_valor_aproximado(col, tabla_real_mostrar[col], mapeo_valores)
-            tabla_real_mostrar.index = [nombre_columnas.get(c, c) for c in tabla_real_mostrar.index]
-            st.dataframe(tabla_real_mostrar.to_frame(name="Valor real"))
+        st.subheader("Top 10 características más distintivas")
 
-    # ----------------- COLUMNA 3 (Tabla 2) -----------------
+        if grupo_id not in tabla_scores.index:
+            st.info("Grupo no disponible")
+        else:
+            # proporciones de moda por variable para el grupo seleccionado
+            group_props = tabla_scores.loc[grupo_id].astype(float)
+
+            # media de proporciones del resto de grupos
+            others = tabla_scores.drop(grupo_id)
+            others_mean = others.mean(axis=0).astype(float) if len(others) > 0 else pd.Series(0, index=tabla_scores.columns)
+
+            # diferencia absoluta entre este grupo y la media del resto -> variables distintivas
+            diff = (group_props - others_mean).abs()
+            # seleccionar top 10 variables más distintivas (si hay menos de 10, toma todas)
+            top10_vars_group = diff.nlargest(10).index.tolist()
+
+            # obtener los valores reales (moda) para esas variables en el grupo
+            valores_moda = tabla_original.loc[grupo_id, top10_vars_group]
+
+            # traducir los valores mediante mapeo (keys en minúscula en mapeo_valores)
+            filas = []
+            for var in top10_vars_group:
+                raw = valores_moda[var]
+                trad = traducir_valor_aproximado(var, raw, mapeo_valores)
+                nombre = nombre_columnas.get(var.lower(), var)  # nombre amigable si existe
+                filas.append({"Característica": nombre, "Valor real": trad})
+
+            df_display = pd.DataFrame(filas)
+            # mostrar sin índice
+            st.dataframe(
+                df_display.reset_index(drop=True),
+                use_container_width=True
+            )
+
+    # --- Tabla2: Variables clínicas (valores reales traducidos) ---
     with col_tab2:
-        st.subheader("🩺 Variables clínicas")
-        if (cluster_id is None) or (cluster_id not in tabla_original.index):
-            st.info("Selecciona un grupo válido.")
-        else:
-            cefalea_real = tabla_original.loc[cluster_id][cefalea_vars_presentes]
-            cefalea_para_mostrar = cefalea_real.copy()
-            for col in cefalea_para_mostrar.index:
-                cefalea_para_mostrar[col] = traducir_valor_aproximado(col, cefalea_para_mostrar[col], mapeo_valores)
-            cefalea_para_mostrar.index = [nombre_columnas.get(c, c) for c in cefalea_para_mostrar.index]
-            st.dataframe(cefalea_para_mostrar.to_frame(name="Valor real"))
+        st.subheader("Variables clínicas")
 
-    # --- Segunda fila: Explorar variable + Perfil Multivariante ---
-    st.markdown("---")
+        # Verificar grupo válido
+        if grupo_id not in df_original["grupo"].unique():
+            st.info("Grupo no disponible")
+        else:
+            # calcular la moda real por grupo para VARIABLES CLINICAS
+            df_tabla2 = df_original[df_original["grupo"] == grupo_id][cefalea_vars_presentes] \
+                            .mode().iloc[0]  # moda real del grupo
+
+            filas_clin = []
+            for col in df_tabla2.index:
+                raw_val = df_tabla2[col]
+                val_trad = traducir_valor_aproximado(col, raw_val, mapeo_valores)
+                nombre_trad = nombre_columnas.get(col.lower(), col)
+                filas_clin.append({"Variable": nombre_trad, "Valor": val_trad})
+
+            df_tabla2_out = pd.DataFrame(filas_clin)
+            st.dataframe(df_tabla2_out.reset_index(drop=True), use_container_width=True)
+
+    # ---------------- FILA 2: Explorar variable | Perfil multivariable ----------------
     col_explorar, col_radar = st.columns([1, 1])
 
-    # ----------------- EXPLORAR VARIABLE -----------------
+    # --- Explorar variable ---
     with col_explorar:
-        st.subheader("🔎 Explorar variable específica")
-
-        opciones_vars = {nombre_columnas.get(col, col): col for col in tabla_original.columns}
+        st.subheader("Explorar variable específica")
+        opciones_vars = {nombre_columnas.get(c.lower(), c): c for c in df_original.columns}
         seleccion_amigable = st.selectbox("Selecciona una variable:", sorted(opciones_vars.keys()))
         seleccion_var = opciones_vars[seleccion_amigable]
 
-        if seleccion_var not in df_original.columns:
-            st.info("Selecciona una variable válida.")
-        else:
-            valores_por_grupo = df_original.groupby("grupo")[seleccion_var].agg(
-                lambda x: x.mode().iloc[0] if len(x.mode()) > 0 else np.nan
-            )
+        valores_por_grupo = df_original.groupby("grupo")[seleccion_var].agg(
+            lambda x: x.mode().iloc[0] if len(x.mode()) > 0 else np.nan
+        )
+        valores_traducidos = [traducir_valor_aproximado(seleccion_var, v, mapeo_valores) for v in valores_por_grupo.values]
 
-            valores_traducidos = [
-                traducir_valor_aproximado(seleccion_var, v, mapeo_valores)
-                for v in valores_por_grupo.values
-            ]
+        df_plot = pd.DataFrame({
+            "Grupo": [f"{g+1}" for g in valores_por_grupo.index],
+            "Valor": valores_por_grupo.values,
+            "Valor traducido": valores_traducidos
+        })
 
-            df_plot = pd.DataFrame({
-                "Grupo": [f"{g+1}" for g in valores_por_grupo.index],
-                "Valor": valores_por_grupo.values,
-                "Valor traducido": valores_traducidos
-            })
+        fig_bar, ax_bar = plt.subplots(figsize=(6, 3))
+        sns.barplot(data=df_plot, x="Grupo", y="Valor", palette="Blues_d", ax=ax_bar)
+        unique_vals = sorted(df_plot["Valor"].unique())
+        ax_bar.set_yticks(unique_vals)
+        ax_bar.set_yticklabels([traducir_valor_aproximado(seleccion_var, v, mapeo_valores) for v in unique_vals])
+        ax_bar.set_xlabel("Grupo")
+        ax_bar.set_ylabel(seleccion_amigable)
+        st.pyplot(fig_bar)
 
-            if seleccion_var in mapeo_valores:
-                posibles_valores = [v[0] for v in mapeo_valores[seleccion_var]]
-                etiquetas_traducidas = [v[1] for v in mapeo_valores[seleccion_var]]
-            else:
-                posibles_valores = sorted(df_plot["Valor"].unique())
-                etiquetas_traducidas = [traducir_valor_aproximado(seleccion_var, v, mapeo_valores) for v in posibles_valores]
-
-            fig_bar, ax_bar = plt.subplots(figsize=(6, 3))
-            sns.barplot(
-                data=df_plot,
-                x="Grupo",
-                y="Valor",
-                palette="Blues_d",
-                ax=ax_bar
-            )
-
-            ax_bar.set_yticks(posibles_valores)
-            ax_bar.set_yticklabels(etiquetas_traducidas)
-
-            # Ajustes visuales
-            ax_bar.set_xlabel("Grupo")
-            ax_bar.set_ylabel(seleccion_amigable)
-            ax_bar.set_title("Comparación entre grupos")
-            st.pyplot(fig_bar)
-
-    # ----------------- PERFIL MULTIVARIABLE -----------------
+    # ----------------- PERFIL MULTIVARIABLE (RADAR) -----------------
     with col_radar:
         st.subheader("📈 Perfil Multivariante por grupo")
-        import plotly.graph_objects as go
 
-        grupos_radar = st.multiselect(
-            "Selecciona grupos a comparar",
-            [f"Grupo {i+1}" for i in sorted(tabla_scores.index)],
-            default=["Grupo 1", "Grupo 2"]
-        )
+        opciones_grupos = [f"Grupo {i+1}" for i in sorted(df_original["grupo"].unique())]
+        default_grupos = opciones_grupos[:2] if len(opciones_grupos) >= 2 else opciones_grupos
+        grupos_radar = st.multiselect("Selecciona grupos a comparar", opciones_grupos, default=default_grupos)
 
-        vars_radar = [v for v in cefalea_vars_presentes if v in tabla_scores.columns]
+        vars_radar = cefalea_vars_presentes.copy()
         fig = go.Figure()
 
         for g_nombre in grupos_radar:
-            g = int(g_nombre.split(" ")[1]) - 1 
-            valores = tabla_scores.loc[g, vars_radar].astype(float).values
+            g = int(g_nombre.split(" ")[1]) - 1
+
+            # ➤ obtener MODAS reales (valores crudos)
+            modas_grupo = df_original[df_original["grupo"] == g][vars_radar].mode().iloc[0]
+
+            # ➤ traducir valores
+            valores_trad = [
+                traducir_valor_aproximado(var, modas_grupo[var], mapeo_valores)
+                for var in vars_radar
+            ]
+
+            # ➤ convertir valores traducidos → valor numérico REAL según tu mapeo
+            valores_numericos = []
+            for i, var in enumerate(vars_radar):
+                valor_texto = valores_trad[i]
+                var_lower = var.lower()
+
+                valor_num = 0  # default si no se encuentra
+
+                # si la variable existe en el mapeo
+                if var_lower in mapeo_valores:
+                    # recorrer la lista de tuplas (valor_numérico, traduccion)
+                    for val_num, traduccion in mapeo_valores[var_lower]:
+                        if traduccion == valor_texto:
+                            valor_num = val_num
+                            break
+
+                valores_numericos.append(valor_num)
+
+            # ➤ nombres visuales
+            nombres_vars = [nombre_columnas.get(v.lower(), v) for v in vars_radar]
+
             fig.add_trace(go.Scatterpolar(
-                r=valores,
-                theta=[nombre_columnas.get(v, v) for v in vars_radar],
+                r=valores_numericos,
+                theta=nombres_vars,
                 fill='toself',
-                name=f'Grupo {g+1}', 
-                opacity=0.7
+                name=f"Grupo {g+1}",
+                text=valores_trad,
+                hovertemplate="%{theta}: %{text}<extra></extra>"
             ))
 
         fig.update_layout(
+            polar=dict(radialaxis=dict(visible=True)),
             showlegend=True,
-            polar=dict(
-                radialaxis=dict(
-                    visible=False,  
-                    range=[0, 1]
-                ),
-                angularaxis=dict(showline=False, linewidth=0)
-            ),
             template="plotly_dark"
         )
 
         st.plotly_chart(fig, use_container_width=True)
 
-    # ----------------------- EXPORTAR RESUMEN GLOBAL + EVALUACIÓN DE MODELOS -----------------------
-    st.markdown("---")
-    st.subheader("📤 Exportar Resumen Global y Evaluación del Modelo")
-
-    if st.button("Generar archivo Excel (con evaluación incluida)"):
-        try:
-            wb = Workbook()
-
-            # ============== HOJA 1: TOP 10 POR GRUPO ==================================
-            ws1 = wb.active
-            ws1.title = "Top10_por_grupo"
-
-            filas_top10 = []
-            for g in sorted(tabla_medias.index):
-                sorted_vars = tabla_medias.loc[g].sort_values()
-                top_10 = sorted_vars.tail(10)
-
-                real_values = tabla_original.loc[g][top_10.index]
-                for var, val in real_values.items():
-                    val_trad = traducir_valor_aproximado(var, val, mapeo_valores)
-                    nombre_trad = nombre_columnas.get(var, var)
-
-                    filas_top10.append({
-                        "Característica": nombre_trad,
-                        "Grupo": f"Grupo {g+1}",
-                        "Valor real": val_trad
-                    })
-
-            df_top10 = pd.DataFrame(filas_top10)
-            for row in dataframe_to_rows(df_top10, index=False, header=True):
-                ws1.append(row)
-
-            # ============== HOJA 2: VARIABLES CLÍNICAS POR GRUPO ======================
-            ws2 = wb.create_sheet("Clinicas_por_grupo")
-
-            filas_clinicas = []
-            for g in sorted(tabla_original.index):
-                clinicas = tabla_original.loc[g][cefalea_vars_presentes]
-
-                for var, val in clinicas.items():
-                    val_trad = traducir_valor_aproximado(var, val, mapeo_valores)
-                    nombre_trad = nombre_columnas.get(var, var)
-
-                    filas_clinicas.append({
-                        "Variable clínica": nombre_trad,
-                        "Grupo": f"Grupo {g+1}",
-                        "Valor real": val_trad
-                    })
-
-            df_clinicas = pd.DataFrame(filas_clinicas)
-            for row in dataframe_to_rows(df_clinicas, index=False, header=True):
-                ws2.append(row)
-
-            # ============== HOJA 3: EVALUACIÓN DE MODELOS =============================
-            ws3 = wb.create_sheet("Evaluacion_Modelos")
-
-            # ------------ COSTE DE KMODES PARA K = 2 a 10 --------------------------
-            ws3.append(["Evaluación del algoritmo de Clustering - K-Modes"])
-            ws3.append([])
-
-            ws3.append(["k", "Coste", "Silhouette (Hamming)", "ARI promedio (10 corridas)", "ARI SD"])
-
-            from sklearn.metrics import adjusted_rand_score
-
-            for k in range(2, 11):
-
-                # --- KModes con k clusters ---
-                km_temp = KModes(n_clusters=k, init="Huang", n_init=5, random_state=42)
-                labels = km_temp.fit_predict(X_kmodes)
-                coste_k = km_temp.cost_
-
-                # --- Silhouette ---
-                try:
-                    sil_k = silhouette_score(X_kmodes.astype(str), labels, metric="hamming")
-                except:
-                    sil_k = None
-
-                # --- ARI estabilidad ---
-                ari_list = []
-                for i in range(10):
-                    km_a = KModes(n_clusters=k, init="Huang", n_init=5,
-                                random_state=np.random.randint(0, 10_000))
-                    km_b = KModes(n_clusters=k, init="Huang", n_init=5,
-                                random_state=np.random.randint(0, 10_000))
-                    labs_a = km_a.fit_predict(X_kmodes)
-                    labs_b = km_b.fit_predict(X_kmodes)
-                    ari_list.append(adjusted_rand_score(labs_a, labs_b))
-
-                ari_prom = float(np.mean(ari_list))
-                ari_std = float(np.std(ari_list))
-
-                # --- Escribir fila ---
-                ws3.append([k, coste_k, sil_k, ari_prom, ari_std])
-
-            ws3.append([])
-            ws3.append([])
 
 
-            # ------------ CHI-CUADRADO + CRAMER’S V --------------------------------
-            ws3.append(["Chi-cuadrado y Cramér’s V por variable"])
-            ws3.append(["Variable", "Chi2", "p-value", "Cramér’s V"])
+# ----------------------- EXPORTAR RESUMEN GLOBAL -----------------------
+st.markdown("---")
+st.subheader("📤 Exportar Resumen Global y Evaluación del Modelo")
 
-            def cramers_v(conf_mat):
-                chi2 = chi2_contingency(conf_mat)[0]
-                n = conf_mat.sum()
-                r, k = conf_mat.shape
-                return np.sqrt(chi2 / (n * (min(r, k) - 1)))
+if st.button("Generar archivo Excel (con evaluación incluida)"):
+    try:
+        wb = Workbook()
 
-            for var in df_original.columns:
-                if var not in ["grupo", "IndiceDolor", "PrediccionDolor", "PrediccionDolorCat"]:
-                    tabla = pd.crosstab(df_original[var], df_original["grupo"])
-                    if tabla.shape[0] > 1:
-                        chi2, p, _, _ = chi2_contingency(tabla)
-                        cv = cramers_v(tabla.values)
-                        nombre = nombre_columnas.get(var, var)
-                        ws3.append([nombre, chi2, p, cv])
+        # ============== HOJA 1: TOP 10 POR GRUPO (DINÁMICOS) ============================
+        ws1 = wb.active
+        ws1.title = "Top10_por_grupo"
 
-            ws3.append([])
-            ws3.append([])
+        filas_excel = []
 
-            # ============== SECCIÓN SUPERVISADO =======================================
-            ws3.append(["Evaluación del modelo Supervisado - Random Forest"])
-            ws3.append([])
+        for g in sorted(tabla_scores.index):
 
-            # =============================== ENTRENAMIENTO ===============================
-            ws3.append(["Métricas en ENTRENAMIENTO"])
-            y_train_pred = rf.predict(X_train)
+            # proporciones del grupo
+            group_props = tabla_scores.loc[g].astype(float)
 
-            # Balanced accuracy - train
-            bal_acc_train = balanced_accuracy_score(y_train, y_train_pred)
-            # F1 Macro - train
-            f1_macro_train = f1_score(y_train, y_train_pred, average='macro')
-            # Accuracy - train
-            acc_train = accuracy_score(y_train, y_train_pred)
+            # media del resto
+            others = tabla_scores.drop(g)
+            others_mean = others.mean(axis=0).astype(float) if len(others) > 0 else pd.Series(0, index=tabla_scores.columns)
 
-            ws3.append(["Balanced Accuracy (train)", bal_acc_train])
-            ws3.append(["F1 Macro (train)", f1_macro_train])
-            ws3.append(["Exactitud (train)", acc_train])
-            ws3.append([])
+            # diferencia absoluta grupo vs otros
+            diff = (group_props - others_mean).abs()
 
-            # Matriz de confusión - train
-            cm_train = confusion_matrix(y_train, y_train_pred)
-            ws3.append(["Matriz de confusión (train)"])
-            ws3.append([""] + [f"Pred {i}" for i in range(cm_train.shape[0])])
-            for i, fila in enumerate(cm_train):
-                ws3.append([f"Real {i}"] + list(fila))
+            # top 10 del grupo
+            top10_vars_group = diff.nlargest(10).index.tolist()
 
-            # Calcular precisión y recall por clase
-            ws3.append([])
-            ws3.append(["Precisión y Recall por clase (train)"])
-            ws3.append(["Clase", "Precisión", "Recall"])
+            # valores reales de esas variables
+            for var in top10_vars_group:
+                raw_val = tabla_original.loc[g, var]
+                val_trad = traducir_valor_aproximado(var, raw_val, mapeo_valores)
+                nombre = nombre_columnas.get(var.lower(), var)
 
-            precision_train_list = []
-            recall_train_list = []
+                filas_excel.append({
+                    "Grupo": f"Grupo {g+1}",
+                    "Característica": nombre,
+                    "Valor real": val_trad
+                })
 
-            for clase in range(cm_train.shape[0]):
-                TP = cm_train[clase, clase]
-                FP = cm_train[:, clase].sum() - TP
-                FN = cm_train[clase, :].sum() - TP
+        df_top10_excel = pd.DataFrame(filas_excel)
 
-                precision = TP / (TP + FP) if (TP + FP) > 0 else 0
-                recall = TP / (TP + FN) if (TP + FN) > 0 else 0
+        for row in dataframe_to_rows(df_top10_excel, index=False, header=True):
+            ws1.append(row)
 
-                precision_train_list.append(precision)
-                recall_train_list.append(recall)
+        # ============== HOJA 2: VARIABLES CLÍNICAS POR GRUPO ======================
+        ws2 = wb.create_sheet("Clinicas_por_grupo")
+        filas_clinicas = []
+        for g in sorted(tabla_original.index):
+            clinicas = tabla_original.loc[g, cefalea_vars_presentes]
+            for var, val in clinicas.items():
+                val_trad = traducir_valor_aproximado(var, val, mapeo_valores)
+                nombre_trad = nombre_columnas.get(var.lower(), var)
+                filas_clinicas.append({
+                    "Grupo": f"Grupo {g+1}",
+                    "Variable clínica": nombre_trad,
+                    "Valor real": val_trad
+                })
+        df_clinicas = pd.DataFrame(filas_clinicas)
+        for row in dataframe_to_rows(df_clinicas, index=False, header=True):
+            ws2.append(row)
 
-                ws3.append([clase, precision, recall])
+        # ============== EXPORTAR EXCEL ============================================
+        output = io.BytesIO()
+        wb.save(output)
+        output.seek(0)
 
-            ws3.append(["Precision macro (train)", np.mean(precision_train_list)])
-            ws3.append(["Recall macro (train)", np.mean(recall_train_list)])
-            ws3.append([])
+        st.success("✅ Archivo con evaluación generado correctamente")
+        st.download_button(
+            label="⬇️ Descargar Resumen_Modelos.xlsx",
+            data=output,
+            file_name="Resumen_Modelos.xlsx",
+            mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
+        )
+    except Exception as e:
+        st.error(f"Error al generar el archivo: {e}")
 
 
-            # =============================== TEST =======================================
-            ws3.append([])
-            ws3.append(["Métricas en TEST"])
-            y_test_pred = rf.predict(X_test)
 
-            # Balanced accuracy - test
-            bal_acc_test = balanced_accuracy_score(y_test, y_test_pred)
-            # F1 Macro - test
-            f1_macro_test = f1_score(y_test, y_test_pred, average='macro')
-            # Accuracy - test
-            acc_test = accuracy_score(y_test, y_test_pred)
 
-            ws3.append(["Balanced Accuracy (test)", bal_acc_test])
-            ws3.append(["F1 Macro (test)", f1_macro_test])
-            ws3.append(["Exactitud (test)", acc_test])
-            ws3.append([])
-
-            # Matriz de confusión - test
-            cm_test = confusion_matrix(y_test, y_test_pred)
-            ws3.append(["Matriz de confusión (test)"])
-            ws3.append([""] + [f"Pred {i}" for i in range(cm_test.shape[0])])
-            for i, fila in enumerate(cm_test):
-                ws3.append([f"Real {i}"] + list(fila))
-
-            # Precisión y recall por clase (test)
-            ws3.append([])
-            ws3.append(["Precisión y Recall por clase (test)"])
-            ws3.append(["Clase", "Precisión", "Recall"])
-
-            precision_test_list = []
-            recall_test_list = []
-
-            for clase in range(cm_test.shape[0]):
-                TP = cm_test[clase, clase]
-                FP = cm_test[:, clase].sum() - TP
-                FN = cm_test[clase, :].sum() - TP
-
-                precision = TP / (TP + FP) if (TP + FP) > 0 else 0
-                recall = TP / (TP + FN) if (TP + FN) > 0 else 0
-
-                precision_test_list.append(precision)
-                recall_test_list.append(recall)
-
-                ws3.append([clase, precision, recall])
-
-            ws3.append(["Precision macro (test)", np.mean(precision_test_list)])
-            ws3.append(["Recall macro (test)", np.mean(recall_test_list)])
-            ws3.append([])
-            ws3.append([])
-
-            # =============================== IMPORTANCIA DE VARIABLES ====================
-            ws3.append(["Importancia de Variables (Random Forest)"])
-            ws3.append(["Variable", "Importancia"])
-
-            importancias = rf.feature_importances_
-            for var, imp in sorted(zip(model_cols, importancias), key=lambda x: x[1], reverse=True):
-                nombre = nombre_columnas.get(var, var)
-                ws3.append([nombre, float(imp)])
-
-            # ============== EXPORTAR EXCEL ============================================
-            output = io.BytesIO()
-            wb.save(output)
-            output.seek(0)
-
-            st.success("✅ Archivo con evaluación generado correctamente")
-            st.download_button(
-                label="⬇️ Descargar Resumen_Modelos.xlsx",
-                data=output,
-                file_name="Resumen_Modelos.xlsx",
-                mime="application/vnd.openxmlformats-officedocument.spreadsheetml.sheet"
-            )
-
-        except Exception as e:
-            st.error(f"Error al generar el archivo: {e}")
 
 
 
