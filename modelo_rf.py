@@ -1,7 +1,4 @@
-"""
-Entrenamiento de Random Forest (mejor modelo) con SMOTE opcional
-y guardado del modelo entrenado en formato .joblib
-"""
+
 
 import pandas as pd
 from sklearn.ensemble import RandomForestClassifier

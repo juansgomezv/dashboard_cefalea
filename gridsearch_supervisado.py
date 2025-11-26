@@ -1,18 +1,3 @@
-"""
-Gridsearch supervisado para seleccionar mejor modelo y hiperparámetros
-entre Random Forest, XGBoost y SVM. Métricas evaluadas:
-- Sensibilidad macro
-- Especificidad macro
-- F1 macro
-- Balanced Accuracy
-- Precisión macro
-- Desviación estándar de clases
-
-SMOTE opcional (solo sobre entrenamiento) para bases desbalanceadas.
-
-Archivo Excel generado:
-    resultados_gridsearch_supervisado.xlsx
-"""
 
 import pandas as pd
 import numpy as np

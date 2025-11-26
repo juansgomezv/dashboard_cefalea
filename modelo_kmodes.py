@@ -1,7 +1,3 @@
-# =============================================================
-# modelo_kmodes_seguro.py
-# Entrenamiento de KModes con guardado de columnas y conversión a string
-# =============================================================
 
 import pandas as pd
 import joblib
@@ -13,9 +9,7 @@ from contextlib import redirect_stdout
 # ==================== FUNCIONES ====================
 
 def load_dataset(dataset_path):
-    """
-    Carga el dataset y convierte todas las columnas a string.
-    """
+    
     df = pd.read_csv(dataset_path)
     df = df.fillna("NA").astype(str)
     return df
@@ -28,9 +22,6 @@ def entrenar_kmodes(
     random_state=42,
     output_model="modelo_kmodes.joblib"
 ):
-    """
-    Entrena un modelo KModes y guarda las columnas usadas.
-    """
 
     # Cargar dataset
     df = load_dataset(dataset_path)

@@ -123,11 +123,8 @@ importancia = pd.DataFrame({
 })
 
 importancia = importancia.sort_values("importancia", ascending=False)
-
 importancia["nombre_trad"] = importancia["variable"].str.lower().map(nombre_columnas).fillna(importancia["variable"])
-
 importancia["acumulado"] = importancia["importancia"].cumsum()
-
 vars_recomendadas = importancia[importancia["acumulado"] <= 0.70]["variable"].tolist()
 
 if len(vars_recomendadas) < 8:
@@ -203,8 +200,8 @@ tab1, tab2 = st.tabs(["Agrupaciones", "Predicciones"])
 # ---------------------- TAB PREDICCIONES ----------------------
 with tab2:
 
-    st.write("Completa los campos para predecir el nivel de dolor de un estudiante con ese perfil.")
-    st.subheader("Variables más influyentes necesarias para la predicción")
+    st.write("Completa los campos para predecir el nivel de dolor de un estudiante con ese perfil. 📋✏️")
+    st.subheader("Variables más influyentes necesarias para la predicción ⬆️")
 
     vars_prediccion = vars_recomendadas
     cols_modelo = list(rf_model.feature_names_in_)
@@ -270,7 +267,7 @@ with tab2:
             3: "Alto"
         }
 
-        st.success(f"**Nivel de Dolor Predicho:** {traduccion_nivel.get(pred, pred)}")
+        st.success(f"**☝️🤓 Nivel de Dolor Predicho:** {traduccion_nivel.get(pred, pred)}")
 
 
 # ---------------------- TAB AGRUPACIONES ----------------------
@@ -311,7 +308,7 @@ with tab1:
 
     # --- Tabla1: Top 10 características más distintivas del grupo seleccionado ---
     with col_tab1:
-        st.subheader("Top 10 características más distintivas")
+        st.subheader("⭐ Top 10 Características ⭐")
 
         if grupo_id not in tabla_scores.index:
             st.info("Grupo no disponible")
@@ -348,7 +345,7 @@ with tab1:
 
     # --- Tabla2: Variables clínicas (valores reales traducidos) ---
     with col_tab2:
-        st.subheader("Variables clínicas")
+        st.subheader("Variables clínicas 🩺")
 
         # Verificar grupo válido
         if grupo_id not in df_original["grupo"].unique():
@@ -373,7 +370,7 @@ with tab1:
 
     # --- Explorar variable ---
     with col_explorar:
-        st.subheader("Explorar variable específica")
+        st.subheader("Explorar variable específica 🔎")
         opciones_vars = {nombre_columnas.get(c.lower(), c): c for c in df_original.columns}
         seleccion_amigable = st.selectbox("Selecciona una variable:", sorted(opciones_vars.keys()))
         seleccion_var = opciones_vars[seleccion_amigable]
@@ -463,9 +460,9 @@ with tab1:
 
 # ----------------------- EXPORTAR RESUMEN GLOBAL -----------------------
 st.markdown("---")
-st.subheader("📤 Exportar Resumen Global y Evaluación del Modelo")
+st.subheader("📤 Exportar Resumen Global")
 
-if st.button("Generar archivo Excel (con evaluación incluida)"):
+if st.button("Generar archivo Excel"):
     try:
         wb = Workbook()
 
