@@ -3,7 +3,7 @@ import numpy as np
 import itertools
 from kmodes.kmodes import KModes
 from sklearn.preprocessing import OrdinalEncoder
-from sklearn.metrics import silhouette_score
+from sklearn.metrics import silhouette_score, silhouette_samples
 from scipy.stats import chi2_contingency
 import gower
 from openpyxl import Workbook
@@ -29,7 +29,7 @@ def compute_cramers_v(col, labels):
     phi2 = chi2 / n
     r, k = contingency.shape
 
-    # Corrección de bias
+    # Corrección de sesgo
     phi2_corr = max(0, phi2 - ((k - 1)*(r - 1))/(n - 1))
     r_corr = r - (r - 1)**2/(n - 1)
     k_corr = k - (k - 1)**2/(n - 1)
@@ -37,8 +37,9 @@ def compute_cramers_v(col, labels):
     cramers_v = np.sqrt(phi2_corr / min((k_corr - 1), (r_corr - 1)))
     return chi2, p, cramers_v
 
+
 # =============================================================
-# Gridsearch principal con ponderación
+# Gridsearch basado SOLO en silhouette
 # =============================================================
 
 def run_gridsearch():
@@ -49,140 +50,139 @@ def run_gridsearch():
     print("Codificando datos...")
     X_enc, enc = ordinal_encode(df)
 
-    # =============================================================
-    # Definir variables clínicas y pesos
-    # =============================================================
+    # Variables clínicas ponderadas
     cefalea_vars = ["AntecedentesFamiliares", "LugarDolor", "IntensidadDolor",
                     "DuracionDolor", "FrecuenciaDolor", "ActividadFisica",
                     "InasistenciaDolor", "IndiceDolor"]
-    peso_clinicas = 5  # factor de peso mayor para variables clínicas
+    peso_clinicas = 1
     pesos = np.ones(X_enc.shape[1])
+
     for i, col in enumerate(df.columns):
         if col in cefalea_vars:
             pesos[i] = peso_clinicas
 
-    X_enc_weighted = X_enc * pesos  # aplicar ponderación
+    X_enc_weighted = X_enc * pesos
 
-    # =============================================================
     # Hiperparámetros
-    # =============================================================
-    k_list = [3, 4, 5, 6, 7, 8]
+    k_list =  [3, 4, 5]
     init_list = ["Huang", "Cao"]
     n_init_list = [5, 10, 15]
     use_gower_list = [True, False]
 
     all_results = []
+    best_sil = -999
+    best_combo = None
+    best_labels = None
 
-    print("Iniciando gridsearch...\n")
+    print("\nIniciando gridsearch...\n")
 
-    # Reproducibilidad global
     np.random.seed(42)
 
     for k, init, n_init, use_gower in itertools.product(
         k_list, init_list, n_init_list, use_gower_list
     ):
-
-        # Seed única por combinación para reproducibilidad total
         np.random.seed(42 + k*10 + n_init*100 + (1 if use_gower else 0))
 
         print(f"Probando: k={k}, init={init}, n_init={n_init}, gower={use_gower}")
 
-        # =============================================================
-        # Distancias y clustering
-        # =============================================================
+        # ------------------------------------------------------------------
+        # Clustering
+        # ------------------------------------------------------------------
         if use_gower:
             D = gower.gower_matrix(df)
-            model = KModes(n_clusters=k, init=init, n_init=n_init, verbose=0, random_state=42)
+            model = KModes(n_clusters=k, init=init, n_init=n_init,
+                           verbose=0, random_state=42)
             labels = model.fit_predict(D)
-        else:
-            model = KModes(n_clusters=k, init=init, n_init=n_init, verbose=0, random_state=42)
-            labels = model.fit_predict(X_enc_weighted)  # usar ponderación
 
-        cost = model.cost_
-
-        # Silhouette
-        try:
-            if use_gower:
+            try:
                 sil = silhouette_score(D, labels, metric="precomputed")
-            else:
+                sil_samples = silhouette_samples(D, labels, metric="precomputed")
+                sil_std = sil_samples.std()
+            except:
+                sil = np.nan
+                sil_std = np.nan
+
+        else:
+            model = KModes(n_clusters=k, init=init, n_init=n_init,
+                           verbose=0, random_state=42)
+            labels = model.fit_predict(X_enc_weighted)
+
+            try:
                 sil = silhouette_score(X_enc_weighted, labels, metric="cosine")
-        except:
-            sil = np.nan
+                sil_samples = silhouette_samples(X_enc_weighted, labels, metric="cosine")
+                sil_std = sil_samples.std()
+            except:
+                sil = np.nan
+                sil_std = np.nan
 
-        # Desviación estándar intra-cluster
-        std_cluster = np.mean([
-            X_enc_weighted[labels == c].std().mean() if np.sum(labels == c) > 1 else 0
-            for c in np.unique(labels)
-        ])
-
-        # Cramer's V promedio
-        cramers_vals = []
-        for col in df.columns:
-            _, _, v = compute_cramers_v(df[col], labels)
-            cramers_vals.append(v)
-
-        avg_cramers_v = np.mean(cramers_vals)
-
+        # Guardar resultados
         all_results.append({
             "k": k,
             "init": init,
             "n_init": n_init,
             "use_gower": use_gower,
-            "cost": cost,
             "silhouette": sil,
-            "std_cluster": std_cluster,
-            "avg_cramers_v": avg_cramers_v
+            "silhouette_std": sil_std
         })
 
-    # =============================================================
-    # Convertir resultados a DataFrame
-    # =============================================================
-    df_summary = pd.DataFrame(all_results)
+        # Actualizar mejor modelo
+        if sil > best_sil:
+            best_sil = sil
+            best_combo = (k, init, n_init, use_gower)
+            best_labels = labels
+            best_model = model
+            best_distance_matrix = D if use_gower else X_enc_weighted
 
-    # Normalización de métricas
-    for col in ['silhouette', 'avg_cramers_v']:
-        df_summary[col + '_norm'] = (
-            (df_summary[col] - df_summary[col].min()) /
-            (df_summary[col].max() - df_summary[col].min() + 1e-9)
-        )
-
-    for col in ['cost', 'std_cluster']:
-        temp = (
-            (df_summary[col] - df_summary[col].min()) /
-            (df_summary[col].max() - df_summary[col].min() + 1e-9)
-        )
-        df_summary[col + '_norm'] = 1 - temp  # invertir para que "menor = mejor"
 
     # =============================================================
-    # Ranking con Pesos Normalizados
+    # MÉTRICAS ADICIONALES SOLO PARA EL MEJOR MODELO
     # =============================================================
-    weight_sil = 0.4375
-    weight_cost = 0.375
-    weight_std = 0.125
-    weight_cram = 0.0625
+    print("\n==========================")
+    print("MEJOR MODELO (por silhouette)")
+    print("==========================\n")
+    print(best_combo)
 
-    df_summary["ranking_score"] = (
-        weight_sil * df_summary["silhouette_norm"] +
-        weight_cost * df_summary["cost_norm"] +
-        weight_std * df_summary["std_cluster_norm"] +
-        weight_cram * df_summary["avg_cramers_v_norm"]
-    )
+    k, init, n_init, use_gower = best_combo
 
-    best_row = df_summary.loc[df_summary['ranking_score'].idxmax()]
+    # Costo
+    cost = best_model.cost_
 
     # =============================================================
-    # Guardar resultados en Excel
+    # Cramér’s V entre CADA VARIABLE y los CLUSTERS DEL MEJOR MODELO
     # =============================================================
+    chi_list = []
+    for col in df.columns:
+        chi2, p, v = compute_cramers_v(df[col], best_labels)
+        chi_list.append([col, chi2, p, v])
+
+    df_chi = pd.DataFrame(chi_list, columns=["variable", "chi2", "p_value", "cramers_v"])
+
+    avg_cramers = df_chi["cramers_v"].mean()
+
+    # =============================================================
+    # Excel FINAL
+    # =============================================================
+
+    df_results = pd.DataFrame(all_results)
+
+    df_best = pd.DataFrame([{
+        "k": k,
+        "init": init,
+        "n_init": n_init,
+        "use_gower": use_gower,
+        "silhouette": best_sil,
+        "cost": cost,
+        "avg_cramers_v": avg_cramers
+    }])
+
     archivo_salida = "resultados_gridsearch_kmodes.xlsx"
     with pd.ExcelWriter(archivo_salida, engine="openpyxl") as writer:
-        df_summary.to_excel(writer, index=False, sheet_name="resultados_completos")
-        best_row.to_frame().T.to_excel(writer, index=False, sheet_name="mejor_modelo")
+        df_results.to_excel(writer, index=False, sheet_name="gridsearch_silhouette")
+        df_best.to_excel(writer, index=False, sheet_name="mejor_modelo")
+        df_chi.to_excel(writer, index=False, sheet_name="chi_cuadrado_cramers")
 
     print(f"\nArchivo Excel generado: {archivo_salida}")
-    print("\n==========================")
-    print("MEJOR MODELO")
-    print("==========================\n")
-    print(best_row)
+    print("\nMejor modelo + importancia de variables (Cramér’s V) guardado correctamente.")
 
 
 run_gridsearch()
