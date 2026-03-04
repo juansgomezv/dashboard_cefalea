@@ -291,10 +291,9 @@ with tab_rf:
             pred_num = rf_model.predict(df_prediccion)[0]
             
             traduccion_nivel = {
-                0: "Muy Bajo 🟢",
-                1: "Bajo 🟡",
-                2: "Medio 🟠",
-                3: "Alto 🔴"
+                0: "Bajo 🟢",
+                1: "Medio 🟡",
+                2: "Alto 🔴"
             }
             
             resultado_texto = traduccion_nivel.get(pred_num, f"Clase {pred_num}")
