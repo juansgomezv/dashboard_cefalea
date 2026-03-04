@@ -34,11 +34,11 @@ LugarDolor,Lugar del Dolor
 IntensidadDolor,Intensidad del Dolor
 DuracionDolor,Duracion del Dolor
 FrecuenciaDolor,Frecuencia del Dolor
-Ruido/Luz,Sintoma Cefalea: Sensibilidad al Ruido/Luz 
-Nauseas,Sintoma Cefalea: Nauseas
-EdemaOcular,Sintoma Cefalea: Edema Ocular
-Alteraciones,Sintoma Cefalea: Alteraciones Visuales o Sensoriales
-EspasmosFaciales,Sintoma Cefalea: Espasmos Faciales
+Ruido/Luz,Sensibilidad al Ruido/Luz 
+Nauseas,Nauseas
+EdemaOcular,Edema Ocular
+Alteraciones,Alteraciones Visuales o Sensoriales
+EspasmosFaciales,Espasmos Faciales
 ActividadFisica,Actividad Fisica Empeora el Dolor
 InasistenciaDolor,Inasistencia por el Dolor
 IndiceDolor,Indice del Dolor

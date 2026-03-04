@@ -104,7 +104,7 @@ with tab_kmodes:
     else:
         # --- SECCIÓN 1: FILTROS HORIZONTALES Y MÉTRICAS ---
         st.subheader(
-            "Selección de Grupo y Subgrupo Clínico", 
+            "Selección de Grupo y Subgrupo", 
             help="Selecciona un Índice de Dolor y un Subgrupo específico para visualizar su mapa y su perfil clínico."
         )
         
@@ -132,12 +132,12 @@ with tab_kmodes:
                     subgrupo_data = next((sg for sg in datos_nivel["subgrupos"] if sg["id"] == subgrupo_sel), None)
             
             with col_m1:
-                st.metric("Total Pacientes (Nivel)", datos_nivel["n_pacientes"])
+                st.metric("Estudiantes por Nivel", datos_nivel["n_pacientes"])
             with col_m2:
-                st.metric("Atípicos (Outliers)", datos_nivel["n_outliers"], help="Pacientes que no encajan en ningún subgrupo definido.")
+                st.metric("Atípicos", datos_nivel["n_outliers"], help="Pacientes que no encajan en ningún subgrupo definido.")
             with col_m3:
                 if subgrupo_data:
-                    st.metric(f"Pacientes Subgrupo {subgrupo_sel}", f"{subgrupo_data['n']} ({subgrupo_data['porcentaje']:.1f}%)")
+                    st.metric(f"Estudiantes Subgrupo {subgrupo_sel}", f"{subgrupo_data['n']} ({subgrupo_data['porcentaje']:.1f}%)")
                     
         st.markdown("---")
 
@@ -146,7 +146,7 @@ with tab_kmodes:
             col_umap, col_radar = st.columns(2)
             
             with col_umap:
-                st.markdown("#### 🗺️ Mapa de Grupos y Subgrupos de Estudiantes")
+                st.markdown("#### 🗺️ Mapa de Grupos y Subgrupos")
                 df_plot = df_clusters[df_clusters['IndiceDolor'].astype(str) == nivel_sel].copy()
                 
                 def asignar_color(sg_id):
