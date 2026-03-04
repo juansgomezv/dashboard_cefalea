@@ -1,4 +1,5 @@
 import pandas as pd
+import numpy as np
 from sklearn.ensemble import RandomForestClassifier
 from sklearn.model_selection import train_test_split
 from sklearn.metrics import (
@@ -9,7 +10,6 @@ from sklearn.metrics import (
 )
 from imblearn.over_sampling import SMOTE
 import joblib
-import numpy as np
 
 # ==============================
 # Configuración
@@ -18,7 +18,6 @@ dataset_path = "datasetv5.csv"
 target_col = "IndiceDolor"
 random_seed = 42
 
-# Parámetros del mejor modelo
 best_params = {
     "n_estimators": 50,
     "max_depth": 10,
@@ -26,6 +25,7 @@ best_params = {
     "min_samples_leaf": 1,
     "max_features": None
 }
+
 use_smote = False
 
 # ==============================
@@ -39,11 +39,15 @@ y = df[target_col]
 # División train/test
 # ==============================
 X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, stratify=y, random_state=random_seed
+    X,
+    y,
+    test_size=0.2,
+    stratify=y,
+    random_state=random_seed
 )
 
 # ==============================
-# Aplicar SMOTE si corresponde
+# Aplicar SMOTE (si corresponde)
 # ==============================
 if use_smote:
     sm = SMOTE(random_state=random_seed)
@@ -66,32 +70,42 @@ rf_model = RandomForestClassifier(
 rf_model.fit(X_train_res, y_train_res)
 
 # ==============================
-# Evaluar desempeño global
+# Evaluación global
 # ==============================
 y_pred = rf_model.predict(X_test)
 f1_macro = f1_score(y_test, y_pred, average="macro", zero_division=0)
 
 # ==============================
-# Evaluación ONE-VS-REST (uno vs todos)
+# Evaluación ONE-VS-REST
 # ==============================
 clases = sorted(y.unique())
-resultados_ovr = []
 
-print("\n===== Evaluación One-vs-Rest (OVR) =====\n")
+resultados_ovr = []
+matrices_confusion = {}
+
+print("\n===== Evaluación One-vs-Rest =====\n")
 
 for clase in clases:
-    print(f"\n--- Clase {clase} vs Todas ---")
 
-    # Binarizar etiquetas: esta clase = 1, las demás = 0
+    print(f"--- Clase {clase} vs Todas ---")
+
+    # Binarización
     y_test_bin = (y_test == clase).astype(int)
+
+    # Probabilidades para esta clase
     y_prob = rf_model.predict_proba(X_test)[:, clases.index(clase)]
     y_pred_bin = (y_prob >= 0.5).astype(int)
 
-    # Métricas
+    # Matriz de confusión
     cm = confusion_matrix(y_test_bin, y_pred_bin)
+    matrices_confusion[clase] = cm
 
+    # Métricas
     reporte = classification_report(
-        y_test_bin, y_pred_bin, output_dict=True, zero_division=0
+        y_test_bin,
+        y_pred_bin,
+        output_dict=True,
+        zero_division=0
     )
 
     try:
@@ -107,38 +121,48 @@ for clase in clases:
     print(f"Precisión:    {precision:.4f}")
     print(f"F1:           {f1:.4f}")
     print(f"ROC-AUC:      {auc:.4f}")
-    print("Matriz de confusión:\n", cm)
+    print("Matriz de confusión:\n", cm, "\n")
 
     resultados_ovr.append({
-        "clase": clase,
-        "sensibilidad": sensibilidad,
-        "precision": precision,
-        "f1": f1,
-        "roc_auc": auc
+        "Clase": clase,
+        "Sensibilidad": sensibilidad,
+        "Precision": precision,
+        "F1": f1,
+        "ROC_AUC": auc
     })
 
-# Convertir a DataFrame
+# ==============================
+# DataFrame de resultados
+# ==============================
 df_ovr = pd.DataFrame(resultados_ovr)
 
 # ==============================
-# Guardar modelo entrenado
+# Guardar modelo
 # ==============================
-output_file = "modelo_rf.joblib"
-print(f"\nGuardando modelo en archivo: {output_file}")
-joblib.dump(rf_model, output_file)
-print("Modelo guardado correctamente.\n")
-
-print("Hiperparámetros usados:")
-for k, v in best_params.items():
-    print(f"  {k} = {v}")
-print(f"\nSMOTE aplicado: {use_smote}")
-print(f"F1 macro en test: {f1_macro:.5f}")
+joblib.dump(rf_model, "modelo_rf.joblib")
 
 # ==============================
-# Guardar resultados ONE-VS-REST en Excel
+# Guardar resultados en Excel
 # ==============================
 excel_output = "resultados_1a1.xlsx"
-df_ovr.to_excel(excel_output, index=False)
 
-print(f"\nArchivo Excel generado: {excel_output}")
-print("\nEvaluación uno-versus-todos completada correctamente.")
+with pd.ExcelWriter(excel_output, engine="openpyxl") as writer:
+
+    # Hoja 1: métricas OVR
+    df_ovr.to_excel(writer, sheet_name="Metricas_OVR", index=False)
+
+    # Hojas siguientes: matrices de confusión
+    for clase, cm in matrices_confusion.items():
+        df_cm = pd.DataFrame(
+            cm,
+            index=["Real 0", "Real 1"],
+            columns=["Pred 0", "Pred 1"]
+        )
+        df_cm.to_excel(writer, sheet_name=f"CM_Clase_{clase}")
+
+print("\n==============================")
+print("Proceso finalizado correctamente")
+print(f"F1 macro (test): {f1_macro:.5f}")
+print(f"SMOTE aplicado: {use_smote}")
+print(f"Archivo generado: {excel_output}")
+print("==============================")

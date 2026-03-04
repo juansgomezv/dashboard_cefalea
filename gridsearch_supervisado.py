@@ -112,7 +112,7 @@ def run_gridsearch(dataset_path, target_col, random_seed=42):
             avg = np.mean(times) if len(times) > 0 else (elapsed / max(1, comb_counter))
             remaining = max(0, TOTAL_COMBINATIONS - comb_counter + 1)
             eta = remaining * avg
-            # print every iteration but ETA shown every 5 iterations to reduce clutter
+            # ETA se muestra cada 5 iteraciones
             if comb_counter % 5 == 0:
                 print(f"[{comb_counter}/{TOTAL_COMBINATIONS}] Modelo={model_name} | SMOTE={smote_option} | Params={params} | ETA={format_seconds(eta)}")
             else:
@@ -127,9 +127,8 @@ def run_gridsearch(dataset_path, target_col, random_seed=42):
                 X_train, X_test = X[train_idx], X[test_idx]
                 y_train, y_test = y[train_idx], y[test_idx]
 
-                # SMOTE seguro: ajustar k_neighbors según la clase minoritaria del fold
+                # SMOTE: ajustar k_neighbors según la clase minoritaria del fold
                 if smote_option:
-                    # usar pandas para conteo por clase
                     class_counts = pd.Series(y_train).value_counts()
                     min_class_size = int(class_counts.min())
 
@@ -142,7 +141,6 @@ def run_gridsearch(dataset_path, target_col, random_seed=42):
                         sm = SMOTE(random_state=random_seed, k_neighbors=k_neighbors)
                         X_train_res, y_train_res = sm.fit_resample(X_train, y_train)
                     else:
-                        # si hay menos de 2 muestras en la clase minoritaria, no aplicar SMOTE
                         X_train_res, y_train_res = X_train, y_train
                 else:
                     X_train_res, y_train_res = X_train, y_train
@@ -163,7 +161,7 @@ def run_gridsearch(dataset_path, target_col, random_seed=42):
                 metrics_list.append([sens_macro, spec_macro, f1_macro, bal_acc, prec_macro])
                 f1_scores.append(f1_macro)
 
-            # Si por alguna razón no se obtuvieron folds (debe ser raro), evitar crash
+            # evitar crash si no hay folds válidos
             if len(metrics_list) == 0:
                 # saltar esta combinación sin añadir resultados
                 combo_time = time.time() - combo_start
@@ -199,6 +197,9 @@ def run_gridsearch(dataset_path, target_col, random_seed=42):
     # Convertir a DataFrame
     df_results = pd.DataFrame(all_results)
 
+    # -------------------------
+    # Guardar resultados en Excel
+    # -------------------------
     # Hoja 1: solo columnas resumidas
     df_sheet1 = df_results[["modelo", "params", "smote", "f1_macro", "f1_std_cv"]].copy()
 
@@ -226,6 +227,6 @@ def run_gridsearch(dataset_path, target_col, random_seed=42):
     total_elapsed = time.time() - start_time
     print(f"Tiempo total: {format_seconds(total_elapsed)}")
 
-# MAIN
+# Ejecutar gridsearch supervisado
 if __name__ == "__main__":
     run_gridsearch("datasetv5.csv", target_col="IndiceDolor")
