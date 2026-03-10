@@ -1,5 +1,5 @@
 # ======================================================
-# DASHBOARD DE CEFALEA - INTEGRADO (RF + UMAP/HDBSCAN)
+# DASHBOARD DE CEFALEA - INTEGRADO (SVM + UMAP/HDBSCAN)
 # ======================================================
 import streamlit as st
 import pandas as pd
@@ -51,10 +51,11 @@ def cargar_dataset_base():
         return pd.DataFrame()
 
 @st.cache_resource
-def cargar_modelo_rf():
+def cargar_modelo_svm():
     """Carga el modelo predictivo una sola vez en la memoria."""
     try:
-        return joblib.load("modelo_rf.joblib")
+        # Cambiado para cargar el modelo SVM
+        return joblib.load("modelo_svm_final.joblib")
     except Exception:
         return None
 
@@ -86,36 +87,29 @@ st.set_page_config(page_title="Dashboard Cefalea UPB", layout="wide", page_icon=
 # Cargar recursos optimizados
 nombre_columnas, mapeo_valores = cargar_diccionarios()
 df_base = cargar_dataset_base()
-rf_model = cargar_modelo_rf()
+svm_model = cargar_modelo_svm() # Variable actualizada
 df_clusters, resultados_json = cargar_resultados_clustering()
 
 st.markdown("<h1 style='text-align: center;'>HERRAMIENTA DE APOYO PARA LA CARACTERIZACIÓN DE CEFALEA EN COMUNIDAD UPB</h1>", unsafe_allow_html=True)
 st.markdown("---")
 
 # Crear las pestañas
-tab_kmodes, tab_rf = st.tabs(["🧩 Agrupaciones", "🎯 Predicciones"])
+tab_kmodes, tab_pred = st.tabs(["🧩 Agrupaciones", "🎯 Predicciones"])
 
 # ======================================================
-# 3. PESTAÑA AGRUPACIONES (UMAP + HDBSCAN)
+# 3. PESTAÑA AGRUPACIONES (UMAP + HDBSCAN) - INTACTA
 # ======================================================
 with tab_kmodes:
     if df_clusters.empty or not resultados_json:
         st.warning("⚠️ No se encontraron los archivos de clustering ('dataset_con_subgrupos.csv' y 'resultados_finales.json'). Ejecuta primero el pipeline de entrenamiento.")
     else:
-        # --- SECCIÓN 1: FILTROS HORIZONTALES Y MÉTRICAS ---
-        st.subheader(
-            "Selección de Grupo y Subgrupo", 
-            help="Selecciona un Índice de Dolor y un Subgrupo específico para visualizar su mapa y su perfil clínico."
-        )
-        
-        # Usamos 5 columnas para la distribución horizontal
+        st.subheader("Selección de Grupo y Subgrupo", help="Selecciona un Índice de Dolor y un Subgrupo específico para visualizar su mapa y su perfil clínico.")
         col_f1, col_f2, col_m1, col_m2, col_m3 = st.columns([1.5, 1.5, 1, 1, 1])
         
         niveles_disp = sorted(list(resultados_json.keys()))
         if not niveles_disp:
             st.error("No hay niveles procesados en el JSON.")
-            nivel_sel = None
-            subgrupo_sel = None
+            nivel_sel, subgrupo_sel = None, None
         else:
             with col_f1:
                 nivel_sel = st.selectbox("Índice de Dolor:", niveles_disp)
@@ -125,23 +119,19 @@ with tab_kmodes:
             with col_f2:
                 if not subgrupos_disp:
                     st.warning("Sin subgrupos.")
-                    subgrupo_sel = None
-                    subgrupo_data = None
+                    subgrupo_sel, subgrupo_data = None, None
                 else:
                     subgrupo_sel = st.selectbox("Subgrupo:", subgrupos_disp)
                     subgrupo_data = next((sg for sg in datos_nivel["subgrupos"] if sg["id"] == subgrupo_sel), None)
             
-            with col_m1:
-                st.metric("Estudiantes por Nivel", datos_nivel["n_pacientes"])
-            with col_m2:
-                st.metric("Atípicos", datos_nivel["n_outliers"], help="Pacientes que no encajan en ningún subgrupo definido.")
+            with col_m1: st.metric("Estudiantes por Nivel", datos_nivel["n_pacientes"])
+            with col_m2: st.metric("Atípicos", datos_nivel["n_outliers"], help="Pacientes que no encajan en ningún subgrupo definido.")
             with col_m3:
                 if subgrupo_data:
                     st.metric(f"Estudiantes Subgrupo {subgrupo_sel}", f"{subgrupo_data['n']} ({subgrupo_data['porcentaje']:.1f}%)")
                     
         st.markdown("---")
 
-        # --- SECCIÓN 2: GRÁFICOS LADO A LADO (UMAP Y RADAR) ---
         if subgrupo_sel is not None and subgrupo_data is not None:
             col_umap, col_radar = st.columns(2)
             
@@ -164,22 +154,16 @@ with tab_kmodes:
                 
                 fig_umap = px.scatter(
                     df_plot, x="umap_x", y="umap_y", color="Categoria_Color",
-                    color_discrete_map=color_map,
-                    hover_data=["IndiceDolor", "Subgrupo_Global"],
-                    opacity=0.85
+                    color_discrete_map=color_map, hover_data=["IndiceDolor", "Subgrupo_Global"], opacity=0.85
                 )
                 
                 fig_umap.update_traces(marker=dict(size=9, line=dict(width=1, color='DarkSlateGrey')))
                 fig_umap.update_layout(
-                    plot_bgcolor='white',
-                    paper_bgcolor='white',
-                    font=dict(color='black'),  # <--- AÑADE ESTA LÍNEA
-                    legend_title_text="Clasificación",
-                    margin=dict(l=0, r=0, t=10, b=0)
+                    plot_bgcolor='white', paper_bgcolor='white', font=dict(color='black'),
+                    legend_title_text="Clasificación", margin=dict(l=0, r=0, t=10, b=0)
                 )
                 fig_umap.update_xaxes(showgrid=False, zeroline=False, showticklabels=False, title="")
                 fig_umap.update_yaxes(showgrid=False, zeroline=False, showticklabels=False, title="")
-                
                 st.plotly_chart(fig_umap, use_container_width=True, theme=None)
                 
             with col_radar:
@@ -188,20 +172,15 @@ with tab_kmodes:
                 nombres_radar = [nombre_columnas.get(v.lower(), v) for v in variables_radar]
                 
                 fig_radar = go.Figure()
-                
                 for sg in datos_nivel["subgrupos"]:
                     valores_freq = [sg["perfil"].get(var, {"frecuencia": 0})["frecuencia"] for var in variables_radar]
                     valores_freq += [valores_freq[0]]
                     nombres_cerrados = nombres_radar + [nombres_radar[0]]
                     
                     if sg["id"] == subgrupo_sel:
-                        line_config = dict(color="#1f77b4", width=3)
-                        fill_config = "toself"
-                        opacity = 0.8
+                        line_config, fill_config, opacity = dict(color="#1f77b4", width=3), "toself", 0.8
                     else:
-                        line_config = dict(color="black", width=1.5, dash="dash") # <-- Negro y un poquito más gruesa
-                        fill_config = "none"
-                        opacity = 0.6 # <-- Subimos un poco la opacidad para que resalte
+                        line_config, fill_config, opacity = dict(color="black", width=1.5, dash="dash"), "none", 0.6
                         
                     fig_radar.add_trace(go.Scatterpolar(
                         r=valores_freq, theta=nombres_cerrados, fill=fill_config,
@@ -215,25 +194,18 @@ with tab_kmodes:
                 st.plotly_chart(fig_radar, use_container_width=True)
 
             st.markdown("---")
-
-            # --- SECCIÓN 3: TABLA TRANSPUESTA DE LADO A LADO ---
             st.subheader(f"🩺 Perfil Clínico Dominante: Subgrupo {subgrupo_sel}")
             
             dict_transpuesto = {}
             for var, datos_var in subgrupo_data["perfil"].items():
                 nombre_amigable = nombre_columnas.get(var.lower(), var)
                 valor_traducido = traducir_valor(var, datos_var["valor"], mapeo_valores)
-                frecuencia_pct = f"{datos_var['frecuencia'] * 100:.1f}%"
-                dict_transpuesto[nombre_amigable] = [valor_traducido, frecuencia_pct]
+                dict_transpuesto[nombre_amigable] = [valor_traducido, f"{datos_var['frecuencia'] * 100:.1f}%"]
             
-            # Crear DataFrame con el índice definido como quieres
             df_perfil_t = pd.DataFrame(dict_transpuesto, index=["Valor Mayoritario", "Frecuencia"])
-            
             st.dataframe(df_perfil_t, use_container_width=True)
 
         st.markdown("---")
-
-        # --- SECCIÓN 4: DIAGRAMA DE SANKEY (AL FINAL) ---
         st.subheader("Flujo Poblacional Completo")
         st.write("Distribución desde el total de encuestados hasta la asignación de subgrupos.")
         try:
@@ -244,15 +216,17 @@ with tab_kmodes:
             st.info("Visualización de Sankey no disponible. Asegúrate de tener 'flujo_pacientes_sankey.html' en la carpeta.")
 
 # ======================================================
-# 4. PESTAÑA RANDOM FOREST
+# 4. PESTAÑA PREDICCIONES (SVM INTEGRADO)
 # ======================================================
-with tab_rf:
+with tab_pred:
     st.subheader("Predicción del Índice de Dolor")
     st.write("Completa el perfil del estudiante para predecir su índice de dolor.")
 
-    if rf_model is not None and not df_base.empty:
-        columnas_modelo = list(rf_model.feature_names_in_)
-        importancias = rf_model.feature_importances_
+    if svm_model is not None and not df_base.empty:
+        columnas_modelo = list(svm_model.feature_names_in_)
+        
+        # --- LÓGICA SVM: Usar coef_ absoluto para importancia ---
+        importancias = np.abs(svm_model.coef_).mean(axis=0)
         
         df_imp = pd.DataFrame({"Variable": columnas_modelo, "Importancia": importancias})
         df_imp = df_imp.sort_values(by="Importancia", ascending=False)
@@ -288,7 +262,7 @@ with tab_rf:
                     fila_prediccion[col] = float(moda_val)
             
             df_prediccion = pd.DataFrame([fila_prediccion])
-            pred_num = rf_model.predict(df_prediccion)[0]
+            pred_num = svm_model.predict(df_prediccion)[0]
             
             traduccion_nivel = {
                 0: "Bajo 🟢",
@@ -299,7 +273,7 @@ with tab_rf:
             resultado_texto = traduccion_nivel.get(pred_num, f"Clase {pred_num}")
             st.success(f"### Nivel de Dolor Predicho: {resultado_texto}")
     else:
-        st.error("No se pudo cargar el modelo o los datos base. Verifica los archivos.")
+        st.error("No se pudo cargar el modelo SVM o los datos base. Asegúrate de tener 'modelo_svm_final.joblib'.")
 
 
 ######################################################COMANDO PARA INICIAR STREAMLIT###############################################################################

@@ -653,9 +653,9 @@ if __name__ == "__main__":
     if EJECUCION_INDIVIDUAL:
         # CONFIGURA AQUÍ TU PRUEBA:
         mi_estrategia = 'pesos_crudos'    # 'pesos_crudos' o 'pesos_norm'
-        mi_threshold  = 0.04           # El valor corregido que mencionaste
-        mi_preset     = 'rapido'    # 'rapido', 'balanceado' o 'exhaustivo'
-        mi_output     = 'prueba_gs_04_crudo_rap' # Nombre de la carpeta de prueba
+        mi_threshold  = 0.04        # El valor corregido que mencionaste
+        mi_preset     = 'exhaustivo'    # 'rapido', 'balanceado' o 'exhaustivo'
+        mi_output     = 'prueba_gs_04_crudo_exh' # Nombre de la carpeta de prueba
 
         print(f"\n🧪 INICIANDO PRUEBA INDIVIDUAL")
         print(f"⚙️  Config: {mi_estrategia} | TH: {mi_threshold} | Preset: {mi_preset}")

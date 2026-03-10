@@ -280,7 +280,7 @@ def scenario_b_stratified_clustering(df, config):
         node = dict(pad=15, thickness=20, line=dict(color="black", width=0.5), label=sankey_labels),
         link = dict(source=source, target=target, value=value)
     )])
-    fig_sankey.update_layout(title_text="Flujo de Pacientes: Total -> Nivel de Dolor -> Subgrupos")
+    fig_sankey.update_layout(title_text="Flujo de Estudiantes: Total -> Índice de Dolor -> Subgrupos")
     sankey_path = "flujo_pacientes_sankey.html" # Guardado en raíz
     fig_sankey.write_html(sankey_path)
 
